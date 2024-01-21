@@ -19,30 +19,30 @@ import frc.robot.Robot;
  */
 public class CosmobotContainer extends RobotContainer {
 
-  /** The container for the robot. Contains subsystems, OI devices, and commands. */
-  public CosmobotContainer() {
-    // Configure the button bindings
-    configureButtonBindings();
-  }
+    /** The container for the robot. Contains subsystems, OI devices, and commands. */
+    public CosmobotContainer() {
+        // Configure the button bindings
+        configureButtonBindings();
+    }
 
-  /**
-   * Use this method to define your button->command mappings. Buttons can be created by
-   * instantiating a {@link GenericHID} or one of its subclasses ({@link
-   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
-   * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
-   */
-  private void configureButtonBindings() {
-    CommandXboxController driver = new CommandXboxController(0);
-    CommandXboxController operator = new CommandXboxController(1);
-  }
+    /**
+     * Use this method to define your button->command mappings. Buttons can be created by
+     * instantiating a {@link GenericHID} or one of its subclasses ({@link
+     * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
+     * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
+     */
+    private void configureButtonBindings() {
+        CommandXboxController driver = new CommandXboxController(0);
+        CommandXboxController operator = new CommandXboxController(1);
+    }
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
-   * @return the command to run in autonomous
-   */
-  @Override
-  public Command getAutonomousCommand() {
-    return new InstantCommand(); 
-  }
+    /**
+     * Use this to pass the autonomous command to the main {@link Robot} class.
+     *
+     * @return the command to run in autonomous
+     */
+    @Override
+    public Command getAutonomousCommand() {
+        return new InstantCommand();
+    }
 }
