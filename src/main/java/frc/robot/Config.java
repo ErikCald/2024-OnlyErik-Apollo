@@ -1,6 +1,8 @@
 package frc.robot;
 
 import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkLowLevel;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -91,6 +93,14 @@ public final class Config {
      */
 
     /** ADD CONSTANTS BELOW THIS LINE */
+    public static final class CanID {
+        public static final int ARM_SPARK_LEADER = 4;
+        public static final int ARM_SPARK_FOLLOWER = 5;
+    }
+
+    public static final CANSparkLowLevel.MotorType NEO_MOTORTYPE =
+            CANSparkLowLevel.MotorType.kBrushless; // MUST BE BRUSHLESS!!!
+
     public static final Boolean swerveTuning = true;
 
     public static final class Swerve {
@@ -237,5 +247,35 @@ public final class Config {
         public static final TrapezoidProfile.Constraints kThetaControllerConstraints =
                 new TrapezoidProfile.Constraints(
                         kMaxAngularSpeedRadiansPerSecond, kMaxAngularSpeedRadiansPerSecondSquared);
+    }
+
+    public static final class ArmConfig {
+        public static final int CURRENT_LIMIT = 40;
+        public static final double VOLTAGE_COMP = 9;
+
+        public static final boolean LEADER_INVERTED = false;
+        public static final boolean ABS_ENCODER_INVERTED = false;
+        public static final boolean FOLLOWER_INVERTED = false;
+
+        public static final double kP = 0;
+        public static final double kI = 0;
+        public static final double kD = 0;
+        public static final double iZone = 0;
+
+        public static final double POS_CONV_FACTOR = Math.PI * 2;
+        public static final double VEL_CONV_FACTOR = POS_CONV_FACTOR / 60.0;
+
+        public static final double ABS_ENCODER_OFFSET = 0;
+
+        public static final boolean SOFT_LIMIT_ENABLE = true;
+        public static final float FORW_LIMIT = 0;
+        public static final float REV_LIMIT = 100;
+
+        public static final double MAX_VEL = Math.toRadians(90);
+        public static final double MAX_ACCEL = Math.toRadians(60);
+
+        public static final String DATA_NT_TABLE = "Arm";
+
+        public static final SimpleMotorFeedforward SIMPLE_FF = new SimpleMotorFeedforward(0, 0);
     }
 }

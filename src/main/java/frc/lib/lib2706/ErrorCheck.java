@@ -18,14 +18,14 @@ public class ErrorCheck {
      * @return True for no error, false means there is an error. Boolean can be ignored if not
      *     needed.
      */
-    public static boolean errSpark(String message, REVLibError error) {
+    public static boolean errSpark(String msg, REVLibError error) {
         if (error == REVLibError.kOk) {
             return true;
         }
         DriverStation.reportError(
                 String.format(
                         "[MergeError] - CANSparkMax error. MergeMessage: %s. Spark error code: %s.",
-                        error.toString()),
+                        msg, error.toString()),
                 PRINT_STACK_TRACE);
         return false;
     }
@@ -38,7 +38,7 @@ public class ErrorCheck {
      * @return True for no error, false means there is an error. Boolean can be ignored if not
      *     needed.
      */
-    public static boolean errCTRE(String message, ErrorCode error) {
+    public static boolean errCTRE(String msg, ErrorCode error) {
         if (error == ErrorCode.OK) {
             return true;
         }
@@ -46,7 +46,7 @@ public class ErrorCheck {
         DriverStation.reportError(
                 String.format(
                         "[MergeError] - CTRE device error. MergeMessage: %s. CTRE error code: %s.",
-                        message, error.toString()),
+                        msg, error.toString()),
                 PRINT_STACK_TRACE);
         return false;
     }
@@ -58,7 +58,7 @@ public class ErrorCheck {
      * @param config The Supplier to call to configure which returns a REVLibError.
      * @return true for success, false for failure.
      */
-    public static boolean configureSpark(String message, Supplier<REVLibError> config) {
+    public static boolean configureSpark(String msg, Supplier<REVLibError> config) {
         REVLibError err = REVLibError.kOk;
         for (int i = 0; i < MAXIMUM_RETRIES; i++) {
             err = config.get();
@@ -70,7 +70,7 @@ public class ErrorCheck {
         DriverStation.reportError(
                 String.format(
                         "[MergeError] - CANSparkMax failed to configure setting. MergeMessage: %s. Spark error code: %s \nSee stack trace below.",
-                        message, err.toString()),
+                        msg, err.toString()),
                 PRINT_STACK_TRACE_CONFIGURE);
 
         return false;
