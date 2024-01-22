@@ -7,6 +7,7 @@ package frc.lib.lib2706;
 import edu.wpi.first.math.MathSharedStore;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
+
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -53,7 +54,9 @@ public class PoseBuffer {
         return m_poseBuffer.getSample(timestampSeconds);
     }
 
-    /** Clear the buffer. For use with odometry, must be called when odometry is reset. */
+    /**
+     * Clear the buffer. For use with odometry, must be called when odometry is reset.
+     */
     public void clearBuffer() {
         m_poseBuffer.clear();
     }

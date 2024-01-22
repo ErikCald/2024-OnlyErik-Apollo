@@ -14,6 +14,7 @@ import frc.robot.Config.Swerve.TeleopSpeeds;
 import frc.robot.Robot;
 import frc.robot.commands.PhotonMoveToTarget;
 import frc.robot.commands.TeleopSwerve;
+import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.PhotonSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
 
@@ -29,6 +30,7 @@ public class NewRobotContainer extends RobotContainer {
     private final CommandXboxController operator = new CommandXboxController(1);
 
     private final SwerveSubsystem s_Swerve = SwerveSubsystem.getInstance();
+    private final ArmSubsystem s_arm = ArmSubsystem.getInstance();
 
     /* Create Subsystems in a specific order */
 

@@ -2,7 +2,9 @@ package frc.lib.lib2706;
 
 import com.ctre.phoenix.ErrorCode;
 import com.revrobotics.REVLibError;
+
 import edu.wpi.first.wpilibj.DriverStation;
+
 import java.util.function.Supplier;
 
 public class ErrorCheck {
@@ -69,7 +71,9 @@ public class ErrorCheck {
 
         DriverStation.reportError(
                 String.format(
-                        "[MergeError] - CANSparkMax failed to configure setting. MergeMessage: %s. Spark error code: %s \nSee stack trace below.",
+                        "[MergeError] - CANSparkMax failed to configure setting. MergeMessage: %s."
+                                + " Spark error code: %s \n"
+                                + "See stack trace below.",
                         msg, err.toString()),
                 PRINT_STACK_TRACE_CONFIGURE);
 

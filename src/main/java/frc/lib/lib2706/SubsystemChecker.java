@@ -105,7 +105,8 @@ public class SubsystemChecker {
         if (!canSubsystemConstruct(subsystem)) {
             throw new RuntimeException(
                     String.format(
-                            "SUBSYSTEM INITALIZED - NOT ALLOWED ON THIS ROBOT - RobotID: %d, IllegalSubsystem: %s",
+                            "SUBSYSTEM INITALIZED - NOT ALLOWED ON THIS ROBOT - RobotID: %d,"
+                                    + " IllegalSubsystem: %s",
                             Config.getRobotId(), subsystem.toString()));
         }
     }

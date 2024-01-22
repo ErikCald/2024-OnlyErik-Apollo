@@ -2,15 +2,20 @@ package frc.robot;
 
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel;
+
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
+
 import frc.lib.lib3512.config.SwerveModuleConstants;
+
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +42,7 @@ public final class Config {
     private static int robotId = -1;
 
     private static final int SIMULATION_ID = 1;
+
     /**
      * Returns one of the values passed based on the robot ID
      *
@@ -101,7 +107,10 @@ public final class Config {
     public static final CANSparkLowLevel.MotorType NEO_MOTORTYPE =
             CANSparkLowLevel.MotorType.kBrushless; // MUST BE BRUSHLESS!!!
 
+    public static final int SPARK_SETTERS_TIMEOUT = 150;
+
     public static final Boolean swerveTuning = true;
+    public static final boolean ARM_TUNING = true;
 
     public static final class Swerve {
         public static final double stickDeadband = 0.1;
@@ -262,6 +271,7 @@ public final class Config {
         public static final double kD = 0;
         public static final double iZone = 0;
 
+        public static final double GEAR_RATIO = 1;
         public static final double POS_CONV_FACTOR = Math.PI * 2;
         public static final double VEL_CONV_FACTOR = POS_CONV_FACTOR / 60.0;
 
@@ -273,9 +283,19 @@ public final class Config {
 
         public static final double MAX_VEL = Math.toRadians(90);
         public static final double MAX_ACCEL = Math.toRadians(60);
+        public static final double POSITION_TOLERANCE = Math.toRadians(0.5);
+        public static final double VELOCITY_TOLERANCE = Math.toRadians(0.5);
 
         public static final String DATA_NT_TABLE = "Arm";
 
         public static final SimpleMotorFeedforward SIMPLE_FF = new SimpleMotorFeedforward(0, 0);
+
+        public static final DCMotor SIM_MOTORS = DCMotor.getNEO(2);
+        public static final double LENGTH_METERS = 0.9; // Length of the arm in meters
+        public static final double MASS_KG = 10; // Mass of the arm in kg
+        public static final double MOMENT_OF_INERTIA =
+                SingleJointedArmSim.estimateMOI(
+                        LENGTH_METERS, MASS_KG); // In units of jKgMetersSquared
+        public static final double SIM_NOISE = Math.PI / 2048;
     }
 }

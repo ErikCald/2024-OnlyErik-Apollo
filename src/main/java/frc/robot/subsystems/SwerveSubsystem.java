@@ -5,6 +5,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
+
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -24,9 +25,11 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import frc.lib.lib2706.AdvantageUtil;
 import frc.lib.lib2706.PoseBuffer;
 import frc.robot.Config;
+
 import java.util.Optional;
 
 public class SwerveSubsystem extends SubsystemBase {
@@ -286,7 +289,7 @@ public class SwerveSubsystem extends SubsystemBase {
                 && ++moduleSynchronizationCounter > 5
                 && isSwerveNotSynched()) {
             synchSwerve();
-            System.out.println("Resynced" + ++tempSynchCounter);
+            // System.out.println("Resynced" + ++tempSynchCounter);
             moduleSynchronizationCounter = 0;
         }
 
