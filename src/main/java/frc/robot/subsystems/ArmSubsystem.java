@@ -6,20 +6,32 @@ package frc.robot.subsystems;
 
 import static frc.lib.lib2706.ErrorCheck.configureSpark;
 
+import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkBase.SoftLimitDirection;
 import com.revrobotics.CANSparkLowLevel.PeriodicFrame;
 import com.revrobotics.CANSparkMax;
+import com.revrobotics.REVPhysicsSim;
 import com.revrobotics.SparkAbsoluteEncoder;
 import com.revrobotics.SparkPIDController;
+import com.revrobotics.SparkPIDController.ArbFFUnits;
+
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import frc.lib.lib2706.ProfiledExternalPIDController;
 import frc.lib.lib2706.UpdateSimpleFeedforward;
 import frc.robot.Config;
@@ -28,6 +40,13 @@ import frc.robot.Config.CanID;
 
 public class ArmSubsystem extends SubsystemBase {
     private static ArmSubsystem INSTANCE = null;
+
+    public static ArmSubsystem getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new ArmSubsystem();
+        }
+        return INSTANCE;
+    }
 
     private final CANSparkMax m_sparkLeader;
     private final CANSparkMax m_sparkFollower;
@@ -45,11 +64,16 @@ public class ArmSubsystem extends SubsystemBase {
     private double lastSpeed = 0;
     private double lastFFVoltage = 0;
 
+    private SingleJointedArmSim m_armSim;
+
+    private ArmDisplay m_armDisplay;
     private DoublePublisher pubPos, pubVel, pubPosSet;
     private DoublePublisher pubPosProSet, pubVelProSet, pubAccelSet;
 
-    /** Creates a new ArmSubsystem. */
-    public ArmSubsystem() {
+    /**
+     * Creates a new ArmSubsystem.
+     */
+    private ArmSubsystem() {
         // spotless:off
         /*
          * Setup CANSparkMaxs
@@ -59,6 +83,9 @@ public class ArmSubsystem extends SubsystemBase {
 
         configureSpark("Arm Leader FactoryDefaults", () -> m_sparkLeader.restoreFactoryDefaults());
         configureSpark("Arm Follower FactoryDefaults", () -> m_sparkFollower.restoreFactoryDefaults());
+
+        configureSpark("Arm Leader CANTimeoutBlocking", () -> m_sparkLeader.setCANTimeout(Config.SPARK_SETTERS_TIMEOUT));
+        configureSpark("Arm Follower CANTimeoutBlocking", () -> m_sparkLeader.setCANTimeout(Config.SPARK_SETTERS_TIMEOUT));
 
         configureSpark("Arm Leader CurrentLimit", () -> m_sparkLeader.setSmartCurrentLimit(ArmConfig.CURRENT_LIMIT));
         configureSpark("Arm Follower CurrentLimit", () -> m_sparkFollower.setSmartCurrentLimit(ArmConfig.CURRENT_LIMIT));
@@ -105,8 +132,6 @@ public class ArmSubsystem extends SubsystemBase {
         configureSpark("Arm SoftLimit ForwardEnable", () -> m_sparkLeader.enableSoftLimit(SoftLimitDirection.kForward, ArmConfig.SOFT_LIMIT_ENABLE));
         configureSpark("Arm SoftLimit ReverseEnable", () -> m_sparkLeader.enableSoftLimit(SoftLimitDirection.kReverse, ArmConfig.SOFT_LIMIT_ENABLE));
 
-        
-
         /** 
          * Setup ProfiledPidControllers and Simulation PIDControllers 
          */
@@ -120,6 +145,8 @@ public class ArmSubsystem extends SubsystemBase {
         /**
          * Setup networktables
          */
+        m_armDisplay = new ArmDisplay();
+
         NetworkTable table = NetworkTableInstance.getDefault().getTable(ArmConfig.DATA_NT_TABLE);
 
         pubPos = table.getDoubleTopic("Pos Deg").publish(PubSubOption.periodic(0.02));
@@ -147,25 +174,140 @@ public class ArmSubsystem extends SubsystemBase {
          */
         burnFlash();
 
-        m_sparkLeader.setCANTimeout(0);
-        m_sparkFollower.setCANTimeout(0);
+        configureSpark("Arm Leader CANTimeoutNonBlocking", () -> m_sparkLeader.setCANTimeout(0));
+        configureSpark("Arm Follower CANTimeoutNonBlocking", () -> m_sparkFollower.setCANTimeout(0));
 
         //spotless:on
+
+        /**
+         * Configure simulation object
+         */
+        m_armSim =
+                new SingleJointedArmSim(
+                        DCMotor.getNEO(1),
+                        ArmConfig.GEAR_RATIO,
+                        ArmConfig.MOMENT_OF_INERTIA,
+                        ArmConfig.LENGTH_METERS,
+                        ArmConfig.REV_LIMIT - Math.toRadians(10),
+                        ArmConfig.FORW_LIMIT + Math.toRadians(10),
+                        true,
+                        ArmConfig.REV_LIMIT + Math.toRadians(5), // Starting angle
+                        VecBuilder.fill(ArmConfig.SIM_NOISE) // Add noise with a small std-dev
+                        );
     }
 
-    /** Burn flash after a 0.2 second delay to ensure settings are saved. */
+    /**
+     * Burn flash after a 0.2 second delay to ensure settings are saved.
+     */
     private void burnFlash() {
         try {
             Thread.sleep(200);
         } catch (Exception e) {
         }
 
-        configureSpark("", () -> m_sparkLeader.burnFlash());
-        configureSpark("", () -> m_sparkFollower.burnFlash());
+        configureSpark("Arm Leader BurnFlash", () -> m_sparkLeader.burnFlash());
+        configureSpark("Arm Follower BurnFlash", () -> m_sparkFollower.burnFlash());
+    }
+
+    public double calculateGravityCompensation() {
+        return 0;
     }
 
     @Override
     public void periodic() {
-        // This method will be called once per scheduler run
+        if (Config.ARM_TUNING) {
+            m_updateFeedforward.checkForUpdates();
+        }
+    }
+
+    public double getPosition() {
+        if (!RobotBase.isSimulation()) {
+            return m_encoder.getPosition();
+        } else {
+            return m_armSim.getAngleRads();
+        }
+    }
+
+    public double getVelocity() {
+        if (!RobotBase.isSimulation()) {
+            return m_encoder.getVelocity();
+        } else {
+            return m_armSim.getVelocityRadPerSec();
+        }
+    }
+
+    public void resetProfiledPIDControllers() {
+        m_profiledPid.reset(getPosition(), getVelocity());
+
+        lastFFVoltage = 0;
+        lastSpeed = getVelocity();
+
+        if (RobotBase.isSimulation()) {
+            m_simPid.reset();
+        }
+    }
+
+    public void setAngle(double angleRad) {
+        double pidSetpoint = m_profiledPid.calculatePIDSetpoint(getPosition(), angleRad);
+
+        double acceleration = (m_profiledPid.getSetpoint().velocity - lastSpeed) / 0.02;
+
+        lastFFVoltage =
+                m_feedforward.calculate(m_profiledPid.getSetpoint().velocity, acceleration)
+                        + calculateGravityCompensation();
+
+        m_sparkPid.setReference(
+                pidSetpoint, ControlType.kPosition, 0, lastFFVoltage, ArbFFUnits.kVoltage);
+
+        lastSpeed = m_profiledPid.getSetpoint().velocity;
+
+        pubPosProSet.accept(Math.toDegrees(pidSetpoint));
+        pubVelProSet.accept(Math.toDegrees(m_profiledPid.getSetpoint().velocity));
+        pubAccelSet.accept(Math.toDegrees(acceleration));
+
+        m_runPidSim = true;
+    }
+
+    public boolean isAtSetpoint() {
+        return m_profiledPid.atGoal(ArmConfig.POSITION_TOLERANCE, ArmConfig.VELOCITY_TOLERANCE);
+    }
+
+    public void stopMotors() {
+        m_sparkLeader.stopMotor();
+        m_sparkFollower.stopMotor();
+
+        lastFFVoltage = 0;
+        m_runPidSim = false;
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        REVPhysicsSim.getInstance().run();
+
+        double voltageApplied = 0;
+
+        if (m_runPidSim && DriverStation.isEnabled()) {
+            // spotless:off
+            // Use the simPid to simulate the CANSparkMax pid controller
+            voltageApplied = lastFFVoltage
+                    + m_simPid.calculate(getPosition(), m_profiledPid.getSetpoint().position);
+
+            //spotless:on
+        }
+
+        // Pass the simulation with the inputs as voltages
+        m_armSim.setInput(voltageApplied - calculateGravityCompensation());
+
+        // Update simulation
+        m_armSim.update(0.020); // 20ms clock cycle
+
+        // Update the simulation of the load on the battery
+        RoboRioSim.setVInVoltage(
+                BatterySim.calculateDefaultBatteryLoadedVoltage(m_armSim.getCurrentDrawAmps()));
+    }
+
+    public void testFeedforward(double additionalVoltage) {
+        double voltage = additionalVoltage + calculateGravityCompensation();
+        m_sparkPid.setReference(voltage, ControlType.kVoltage);
     }
 }
