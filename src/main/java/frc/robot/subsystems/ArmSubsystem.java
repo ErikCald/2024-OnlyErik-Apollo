@@ -81,6 +81,9 @@ public class ArmSubsystem extends SubsystemBase {
         m_sparkLeader = new CANSparkMax(CanID.ARM_SPARK_LEADER, Config.NEO_MOTORTYPE);
         m_sparkFollower = new CANSparkMax(CanID.ARM_SPARK_FOLLOWER, Config.NEO_MOTORTYPE);
 
+        configureSpark("Arm Leader CANTimeoutBlocking", () -> m_sparkLeader.setCANTimeout(Config.SPARK_SETTERS_TIMEOUT));
+        configureSpark("Arm Follower CANTimeoutBlocking", () -> m_sparkLeader.setCANTimeout(Config.SPARK_SETTERS_TIMEOUT));
+
         configureSpark("Arm Leader FactoryDefaults", () -> m_sparkLeader.restoreFactoryDefaults());
         configureSpark("Arm Follower FactoryDefaults", () -> m_sparkFollower.restoreFactoryDefaults());
 
@@ -163,11 +166,11 @@ public class ArmSubsystem extends SubsystemBase {
         m_feedforward = ArmConfig.SIMPLE_FF;
 
         m_updateFeedforward = new UpdateSimpleFeedforward(
-        (ff) -> m_feedforward = ff, 
-        table, 
-        ArmConfig.SIMPLE_FF.ks, 
-        ArmConfig.SIMPLE_FF.kv, 
-        ArmConfig.SIMPLE_FF.ka);
+            (ff) -> m_feedforward = ff, 
+            table, 
+            ArmConfig.SIMPLE_FF.ks, 
+            ArmConfig.SIMPLE_FF.kv, 
+            ArmConfig.SIMPLE_FF.ka);
 
         /**
          * Burn flash on CANSparkMaxs
@@ -218,6 +221,9 @@ public class ArmSubsystem extends SubsystemBase {
         if (Config.ARM_TUNING) {
             m_updateFeedforward.checkForUpdates();
         }
+
+        pubPos.accept(Math.toDegrees(m_encoder.getPosition()));
+        pubVel.accept(Math.toDegrees(m_encoder.getVelocity()));
     }
 
     public double getPosition() {
@@ -261,6 +267,7 @@ public class ArmSubsystem extends SubsystemBase {
 
         lastSpeed = m_profiledPid.getSetpoint().velocity;
 
+        pubPosSet.accept(Math.toDegrees(angleRad));
         pubPosProSet.accept(Math.toDegrees(pidSetpoint));
         pubVelProSet.accept(Math.toDegrees(m_profiledPid.getSetpoint().velocity));
         pubAccelSet.accept(Math.toDegrees(acceleration));
