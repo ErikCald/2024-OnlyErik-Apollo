@@ -467,6 +467,9 @@ public final class Config {
     public static final double MAX_ACCEL = Math.PI * 1.5;
 
     public static final double MOMENT_TO_VOLTAGE = 0.000005;    
+
+    // Arm Display values
+    public static final double LENGTH_METERS = 0.371475;
 }
 
 public static enum ArmSetPoints {
