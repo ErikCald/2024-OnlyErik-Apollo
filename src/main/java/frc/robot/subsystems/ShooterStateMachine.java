@@ -12,10 +12,6 @@ import static frc.robot.subsystems.ShooterStateMachine.States.*;
 
 import java.util.function.BooleanSupplier;
 
-import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
-import edu.wpi.first.math.interpolation.Interpolator;
-import edu.wpi.first.math.interpolation.InverseInterpolator;
-
 /** Add your docs here. */
 public class ShooterStateMachine {
     private boolean isInRange = false;
@@ -26,13 +22,12 @@ public class ShooterStateMachine {
 
     /**
      * All possible Modes to control the shooter
-    */
+     */
     public static enum ShooterModes {
         STOP_SHOOTER(0.0, 0.0),
         PRE_HEAT(4.0, 500.0),
         SHOOT_AMP(6.0, 800.0),
-        SHOOT_SPEAKER(9.0, 1700.0);//MAX 2500 with 9 v
-
+        SHOOT_SPEAKER(9.0, 1700.0); // MAX 2500 with 9 v
         double v, RPM;
 
         private ShooterModes(double voltage, double velo) {
@@ -49,14 +44,14 @@ public class ShooterStateMachine {
         }
     }
 
-    /** 
+    /**
      * All possible states of the shooter
      */
     public static enum States {
-        IN_IDLE,//-
-        PRE_HEATING,//-
+        IN_IDLE, // -
+        PRE_HEATING, // -
         PRE_HEATED,
-        REACHING_SET_POINT,//-
+        REACHING_SET_POINT, // -
         AMP_LAUNCH_READY,
         SPEAKER_LAUNCH_READY,
     }
@@ -71,14 +66,15 @@ public class ShooterStateMachine {
 
     /**
      * Method to get the desired voltage depending on the mode it was set
-     * @return desired velocity 
+     * @return desired velocity
      */
     public double getDesiredVoltage() {
         return desiredMode.getDesiredVoltage();
     }
+
     /**
      * Method to get the desired velocity depending on the mode it was set
-     * @return desired velocity 
+     * @return desired velocity
      */
     public double getDesiredVelocityRPM() {
         return desiredMode.getDesiredSpeedRPM();
@@ -87,14 +83,14 @@ public class ShooterStateMachine {
     /**
      * Method for logging values
      */
-    public ShooterModes getDesiredMode(){
+    public ShooterModes getDesiredMode() {
         return desiredMode;
     }
 
     /**
      * Method for getting current state
      */
-    public States getCurrentState(){
+    public States getCurrentState() {
         return currentState;
     }
 
@@ -111,10 +107,8 @@ public class ShooterStateMachine {
      * @param toRun
      */
     public void isInRange(BooleanSupplier toRun) {
-        if (toRun != null)
-            isInRange = toRun.getAsBoolean();
-        else
-            isInRange = false;
+        if (toRun != null) isInRange = toRun.getAsBoolean();
+        else isInRange = false;
     }
 
     /**
@@ -130,10 +124,10 @@ public class ShooterStateMachine {
                 currentState = isInRange ? PRE_HEATED : PRE_HEATING;
                 break;
             case SHOOT_AMP:
-                currentState = isInRange ? AMP_LAUNCH_READY: REACHING_SET_POINT;
+                currentState = isInRange ? AMP_LAUNCH_READY : REACHING_SET_POINT;
                 break;
             case SHOOT_SPEAKER:
-                currentState = isInRange ? SPEAKER_LAUNCH_READY: REACHING_SET_POINT;
+                currentState = isInRange ? SPEAKER_LAUNCH_READY : REACHING_SET_POINT;
                 break;
             default:
                 break;

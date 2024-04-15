@@ -14,7 +14,7 @@ public class XBoxControllerUtil {
     /**
      * Create a Trigger that works when the DownLeft, Left or UpLeft POV button is pressed.
      * This accounts for the fact that POV buttons are easy to press the wrong button.
-     * 
+     *
      * @param controller to create the trigger from.
      * @return Trigger that works for the DownLeft, Left or UpLeft buttons
      */
@@ -25,7 +25,7 @@ public class XBoxControllerUtil {
     /**
      * Create a Trigger that works when the DownRight, Right or UpRight POV button is pressed.
      * This accounts for the fact that POV buttons are easy to press the wrong button.
-     * 
+     *
      * @param controller to create the trigger from.
      * @return Trigger that works for the DownRight, Right or UpRigh buttons
      */

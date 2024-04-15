@@ -4,13 +4,11 @@
 
 package frc.robot.subsystems;
 
-import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkLowLevel.MotorType;
-
 import static frc.robot.subsystems.IntakeStateMachine.IntakeModes.*;
 import static frc.robot.subsystems.IntakeStateMachine.IntakeStates.*;
-import static frc.robot.subsystems.ShooterStateMachine.States.SPEAKER_LAUNCH_READY;
 
+import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 
 import edu.wpi.first.math.filter.Debouncer;
@@ -23,19 +21,20 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import frc.robot.Config;
 import frc.robot.subsystems.IntakeStateMachine.IntakeModes;
 import frc.robot.subsystems.IntakeStateMachine.IntakeStates;
 
 /** Add your docs here. */
-public class IntakeSubsystem extends SubsystemBase{
+public class IntakeSubsystem extends SubsystemBase {
     private CANSparkMax m_intake;
     private boolean stateFulControl = true;
     private IntakeStateMachine intakeStates = new IntakeStateMachine();
 
-    private DigitalInput frontSensor;//  -> 0 
-    private DigitalInput centerSensor;// -> 1
-    private DigitalInput backSensor;//   -> 2
+    private DigitalInput frontSensor; //  -> 0
+    private DigitalInput centerSensor; // -> 1
+    private DigitalInput backSensor; //   -> 2
 
     private Debouncer frontSensorDebouncer;
     private Debouncer centerSensorDebouncer;
@@ -54,9 +53,9 @@ public class IntakeSubsystem extends SubsystemBase{
     private boolean backSensorLongResult;
 
     private static IntakeSubsystem instance;
+
     public static IntakeSubsystem getInstance() {
-        if (instance == null)
-            instance = new IntakeSubsystem();
+        if (instance == null) instance = new IntakeSubsystem();
         return instance;
     }
 
@@ -79,11 +78,26 @@ public class IntakeSubsystem extends SubsystemBase{
         backSensorLongDebouncer = new Debouncer(0.3, Debouncer.DebounceType.kBoth);
 
         NetworkTable intakeTable = NetworkTableInstance.getDefault().getTable("Intake");
-        statesPub = intakeTable.getStringTopic("Intake's Current State").publish(PubSubOption.periodic(0.02));
-        frontSensorPub = intakeTable.getBooleanTopic("front sensor result").publish(PubSubOption.periodic(0.02));
-        centerSensorPub = intakeTable.getBooleanTopic("center sensor result").publish(PubSubOption.periodic(0.02));
-        backSensorPub = intakeTable.getBooleanTopic("back sensor result").publish(PubSubOption.periodic(0.02));
-        backSensorLongPub = intakeTable.getBooleanTopic("back sensor result").publish(PubSubOption.periodic(0.02));
+        statesPub =
+                intakeTable
+                        .getStringTopic("Intake's Current State")
+                        .publish(PubSubOption.periodic(0.02));
+        frontSensorPub =
+                intakeTable
+                        .getBooleanTopic("front sensor result")
+                        .publish(PubSubOption.periodic(0.02));
+        centerSensorPub =
+                intakeTable
+                        .getBooleanTopic("center sensor result")
+                        .publish(PubSubOption.periodic(0.02));
+        backSensorPub =
+                intakeTable
+                        .getBooleanTopic("back sensor result")
+                        .publish(PubSubOption.periodic(0.02));
+        backSensorLongPub =
+                intakeTable
+                        .getBooleanTopic("back sensor result")
+                        .publish(PubSubOption.periodic(0.02));
 
         ErrorTrackingSubsystem.getInstance().register(m_intake);
 
@@ -96,69 +110,69 @@ public class IntakeSubsystem extends SubsystemBase{
      */
     private void burnFlash() {
         try {
-        Thread.sleep(200);
-        } 
-        catch (Exception e) {}
+            Thread.sleep(200);
+        } catch (Exception e) {
+        }
 
         m_intake.burnFlash();
     }
 
-    public boolean isFrontSensorActive(){
+    public boolean isFrontSensorActive() {
         return frontSensorResult;
     }
 
-    public boolean isCenterSensorActive(){
+    public boolean isCenterSensorActive() {
         return centerSensorResult;
     }
-    
-    public boolean isBackSensorActive(){
+
+    public boolean isBackSensorActive() {
         return backSensorResult;
     }
 
-    public boolean isBackSensorLongActive(){
+    public boolean isBackSensorLongActive() {
         return backSensorLongResult;
     }
 
-    public void setVoltage(double voltage){
+    public void setVoltage(double voltage) {
         m_intake.setVoltage(voltage);
     }
 
-    public void setMode(IntakeModes mode){
-        if(!stateFulControl){
+    public void setMode(IntakeModes mode) {
+        if (!stateFulControl) {
             intakeStates.setMode(mode);
             return;
         }
-        
-        if(mode.equals(INTAKE) && getCurrentState().equals(NOTE_IN_POS_IDLE)){
+
+        if (mode.equals(INTAKE) && getCurrentState().equals(NOTE_IN_POS_IDLE)) {
             intakeStates.setMode(STOP_INTAKE);
-        }else if(mode.equals(SHOOT) && getCurrentState().equals(INTAKING)){
+        } else if (mode.equals(SHOOT) && getCurrentState().equals(INTAKING)) {
             intakeStates.setMode(STOP_INTAKE);
-        }else{  
+        } else {
             intakeStates.setMode(mode);
         }
     }
 
-    public void allowAutoMovement(){
+    public void allowAutoMovement() {
         setVoltage(intakeStates.getDesiredVoltage());
     }
 
-    public IntakeStates getCurrentState(){
+    public IntakeStates getCurrentState() {
         return intakeStates.getCurrentState();
     }
 
-    public void stop(){
+    public void stop() {
         m_intake.stopMotor();
     }
 
-    public boolean isNoteIn(){
+    public boolean isNoteIn() {
         return getCurrentState().equals(NOTE_IN_POS_IDLE);
     }
 
-    public void setStateMachineOff(){
+    public void setStateMachineOff() {
         stateFulControl = false;
     }
 
-    public void setStateMachineOn(){
+    public void setStateMachineOn() {
         stateFulControl = true;
     }
 
@@ -166,13 +180,12 @@ public class IntakeSubsystem extends SubsystemBase{
 
     /**
      * This allows the Intake's state machine to have effect on the beheavior of the intake
-     * This should be called every run loop cycle, set it as the default command 
+     * This should be called every run loop cycle, set it as the default command
      * @return Default Intake Command
      */
-    public Command defaultIntakeCommand(){
+    public Command defaultIntakeCommand() {
         return Commands.sequence(
-            runOnce(()->setMode(STOP_INTAKE)),
-             run(()->allowAutoMovement()));
+                runOnce(() -> setMode(STOP_INTAKE)), run(() -> allowAutoMovement()));
     }
 
     /**
@@ -180,10 +193,10 @@ public class IntakeSubsystem extends SubsystemBase{
      * it ends when non of the sensors detect a game piece(when the state is "SHOOTED")
      * @return Shoot Note Command
      */
-    public Command shootNoteCommand(){
+    public Command shootNoteCommand() {
         return Commands.deadline(
-            Commands.waitUntil(()->getCurrentState().equals(SHOOTED)), 
-            Commands.runOnce(()->setMode(SHOOT)));
+                Commands.waitUntil(() -> getCurrentState().equals(SHOOTED)),
+                Commands.runOnce(() -> setMode(SHOOT)));
     }
 
     /**
@@ -192,10 +205,8 @@ public class IntakeSubsystem extends SubsystemBase{
      *  <-This is for TeleOp Only->
      * @return Intake Command
      */
-    public Command intakeNoteCommand(){
-        return Commands.startEnd(
-            ()->setMode(INTAKE), ()->setMode(STOP_INTAKE)
-        );
+    public Command intakeNoteCommand() {
+        return Commands.startEnd(() -> setMode(INTAKE), () -> setMode(STOP_INTAKE));
     }
 
     /**
@@ -204,10 +215,8 @@ public class IntakeSubsystem extends SubsystemBase{
      * <-This is for TeleOp Only->
      * @return Release Command
      */
-    public Command releaseNoteCommand(){
-        return Commands.startEnd(
-            ()->setMode(RELEASE), ()->setMode(STOP_INTAKE)
-        );
+    public Command releaseNoteCommand() {
+        return Commands.startEnd(() -> setMode(RELEASE), () -> setMode(STOP_INTAKE));
     }
 
     @Override
@@ -217,11 +226,17 @@ public class IntakeSubsystem extends SubsystemBase{
         backSensorResult = backSensorDebouncer.calculate(!backSensor.get());
         backSensorLongResult = backSensorLongDebouncer.calculate(!backSensor.get());
 
-        if(stateFulControl){
+        if (stateFulControl) {
             intakeStates.updateSensors(
-                ()->{return backSensorResult;}, 
-                ()->{return frontSensorResult;}, 
-                ()->{return centerSensorResult;});
+                    () -> {
+                        return backSensorResult;
+                    },
+                    () -> {
+                        return frontSensorResult;
+                    },
+                    () -> {
+                        return centerSensorResult;
+                    });
             intakeStates.updateStates();
         }
 
@@ -229,6 +244,6 @@ public class IntakeSubsystem extends SubsystemBase{
         centerSensorPub.accept(centerSensorResult);
         backSensorPub.accept(backSensorResult);
         backSensorLongPub.accept(backSensorLongResult);
-        statesPub.accept(stateFulControl?getCurrentState().toString(): "No State Machine");
+        statesPub.accept(stateFulControl ? getCurrentState().toString() : "No State Machine");
     }
 }

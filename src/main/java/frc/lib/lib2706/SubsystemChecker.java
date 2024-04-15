@@ -17,7 +17,7 @@ public class SubsystemChecker {
         DiffTalonSubsystem,
         SwerveSubsystem,
         ClimberSubsystem,
-        ShooterSubsystem, 
+        ShooterSubsystem,
         RollerIntakeSubsystem,
         PneumaticIntakeSubsystem,
         PneumaticShooterSubsystem,
@@ -33,84 +33,98 @@ public class SubsystemChecker {
      * Allowed Subsystems for each robot
      */
     // RobotID: 0, 2023 Competition robot, unnamed
-    private static SubsystemType[] compBotId0 = new SubsystemType[] {
-        SubsystemType.SwerveSubsystem,
-        SubsystemType.ArmSubsystem,
-        SubsystemType.RelaySubsystem,
-        SubsystemType.VisionNTSubsystem,
-        SubsystemType.GripperSubsystem,
-        SubsystemType.BlingSubsystem,
-    };
+    private static SubsystemType[] compBotId0 =
+            new SubsystemType[] {
+                SubsystemType.SwerveSubsystem,
+                SubsystemType.ArmSubsystem,
+                SubsystemType.RelaySubsystem,
+                SubsystemType.VisionNTSubsystem,
+                SubsystemType.GripperSubsystem,
+                SubsystemType.BlingSubsystem,
+            };
 
     // RobotID: 1, 2022 robot, RapidReact, Clutch
-    private static SubsystemType[] clutchId1 = new SubsystemType[] {
-        SubsystemType.DiffTalonSubsystem, // Chassis
-
-        SubsystemType.RollerIntakeSubsystem,
-        SubsystemType.PneumaticIntakeSubsystem,
-        SubsystemType.PneumaticShooterSubsystem,
-        SubsystemType.IndexerSubsystem,
-        SubsystemType.ShooterSubsystem,
-        SubsystemType.ClimberSubsystem,
-        SubsystemType.BlingSubsystem,
-    };
+    private static SubsystemType[] clutchId1 =
+            new SubsystemType[] {
+                SubsystemType.DiffTalonSubsystem, // Chassis
+                SubsystemType.RollerIntakeSubsystem,
+                SubsystemType.PneumaticIntakeSubsystem,
+                SubsystemType.PneumaticShooterSubsystem,
+                SubsystemType.IndexerSubsystem,
+                SubsystemType.ShooterSubsystem,
+                SubsystemType.ClimberSubsystem,
+                SubsystemType.BlingSubsystem,
+            };
 
     // RobotID: 2, Half-scale talon differential drive robot, Beetle
-    private static SubsystemType[] beetleId2 = new SubsystemType[] {
-        SubsystemType.DiffTalonSubsystem,  // Chassis
-        SubsystemType.RelaySubsystem,
-        SubsystemType.BlingSubsystem,
-    };
+    private static SubsystemType[] beetleId2 =
+            new SubsystemType[] {
+                SubsystemType.DiffTalonSubsystem, // Chassis
+                SubsystemType.RelaySubsystem,
+                SubsystemType.BlingSubsystem,
+            };
 
     // RobotID: 3, 2019 Comp Robot, Deep Space, Mergonaut
-    private static SubsystemType[] mergonautId3 = new SubsystemType[] {
-        SubsystemType.DiffTalonSubsystem,  // Chassis
-    };
+    private static SubsystemType[] mergonautId3 =
+            new SubsystemType[] {
+                SubsystemType.DiffTalonSubsystem, // Chassis
+            };
 
     // RobotID: 4, 2022 Fall Half-scale swerve robot, unnamed
-    private static SubsystemType[] miniSwerveId4 = new SubsystemType[] {
-        SubsystemType.SwerveSubsystem, // Chassis
-        SubsystemType.RelaySubsystem,
-        SubsystemType.VisionNTSubsystem,
-    };
+    private static SubsystemType[] miniSwerveId4 =
+            new SubsystemType[] {
+                SubsystemType.SwerveSubsystem, // Chassis
+                SubsystemType.RelaySubsystem,
+                SubsystemType.VisionNTSubsystem,
+            };
 
     // RobotID: 5, 2022 Fall Half-scale Neo Differential drive robot, unnamed
-    private static SubsystemType[] neoMiniRobotId5 = new SubsystemType[] {
-        SubsystemType.DiffNeoSubsystem, // Chassis
-    };
+    private static SubsystemType[] neoMiniRobotId5 =
+            new SubsystemType[] {
+                SubsystemType.DiffNeoSubsystem, // Chassis
+            };
 
-    private static SubsystemType[] armBotId6 = new SubsystemType[] {
-        SubsystemType.ArmSubsystem,
-    };
+    private static SubsystemType[] armBotId6 =
+            new SubsystemType[] {
+                SubsystemType.ArmSubsystem,
+            };
 
     // Use robotSpecific to know what robot is currently running the code
-    private static SubsystemType[] activeRobotAllowedTypes = Config.robotSpecific(compBotId0, clutchId1, beetleId2, mergonautId3, miniSwerveId4, neoMiniRobotId5, armBotId6);
+    private static SubsystemType[] activeRobotAllowedTypes =
+            Config.robotSpecific(
+                    compBotId0,
+                    clutchId1,
+                    beetleId2,
+                    mergonautId3,
+                    miniSwerveId4,
+                    neoMiniRobotId5,
+                    armBotId6);
 
     /**
      * Check if the subsystem is allowed for the robot this is deployed onto
-     * 
+     *
      * @param subsystem A SubsystemType to identify the subsystem that has been constructed
      */
     public static void subsystemConstructed(SubsystemType subsystem) {
-         if (!canSubsystemConstruct(subsystem)) {
-            throw new RuntimeException(String.format(
-                "SUBSYSTEM INITALIZED - NOT ALLOWED ON THIS ROBOT - RobotID: %d, IllegalSubsystem: %s",
-                Config.getRobotId(), subsystem.toString())
-            );
+        if (!canSubsystemConstruct(subsystem)) {
+            throw new RuntimeException(
+                    String.format(
+                            "SUBSYSTEM INITALIZED - NOT ALLOWED ON THIS ROBOT - RobotID: %d,"
+                                    + " IllegalSubsystem: %s",
+                            Config.getRobotId(), subsystem.toString()));
         }
     }
 
     /**
-     * Search the array of allowed subsystems to see if this subsystem is in it. 
-     * 
+     * Search the array of allowed subsystems to see if this subsystem is in it.
+     *
      * @param allowed List of allowed Subsystems
      * @param subsystem The subsystem that is being checked
      * @return True is the subsystem is in the array
      */
     public static boolean canSubsystemConstruct(SubsystemType subsystem) {
-        for (int i = 0; i < activeRobotAllowedTypes.length; i++) 
-            if (activeRobotAllowedTypes[i].equals(subsystem)) 
-                return true;      
+        for (int i = 0; i < activeRobotAllowedTypes.length; i++)
+            if (activeRobotAllowedTypes[i].equals(subsystem)) return true;
 
         // Never found the subsystem in the array, return false
         return false;

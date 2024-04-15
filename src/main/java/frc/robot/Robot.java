@@ -4,11 +4,6 @@
 
 package frc.robot;
 
-import org.json.simple.parser.ContainerFactory;
-import org.littletonrobotics.urcl.URCL;
-
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -16,17 +11,18 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+
 import frc.lib.lib3512.config.CTREConfigs;
 import frc.robot.Config.CANID;
 import frc.robot.robotcontainers.BeetleContainer;
 import frc.robot.robotcontainers.ClutchContainer;
-import frc.robot.robotcontainers.ContainerForTesting;
-import frc.robot.robotcontainers.CosmobotContainer;
 import frc.robot.robotcontainers.NewRobotContainer;
 import frc.robot.robotcontainers.PoseidonContainer;
 import frc.robot.robotcontainers.RobotContainer;
 import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.PhotonSubsystem;
+
+import org.littletonrobotics.urcl.URCL;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -35,128 +31,135 @@ import frc.robot.subsystems.PhotonSubsystem;
  * project.
  */
 public class Robot extends TimedRobot {
-  private Command m_autonomousCommand;
-  private RobotContainer m_robotContainer;
-  public static CTREConfigs ctreConfigs = new CTREConfigs();
+    private Command m_autonomousCommand;
+    private RobotContainer m_robotContainer;
+    public static CTREConfigs ctreConfigs = new CTREConfigs();
 
-  /**
-   * This function is run when the robot is first started up and should be used for any
-   * initialization code.
-   */
-  @Override
-  public void robotInit() {
-    // Record both DS control and joystick data
-    DriverStation.startDataLog(DataLogManager.getLog());
+    /**
+     * This function is run when the robot is first started up and should be used for any
+     * initialization code.
+     */
+    @Override
+    public void robotInit() {
+        // Record both DS control and joystick data
+        DriverStation.startDataLog(DataLogManager.getLog());
 
-    // Start the URCL (Unofficial REV-Compatible Logger) by 6328. Logs all messages from REV devices.
-    URCL.start(CANID.mapCanIdsToNames());
+        // Start the URCL (Unofficial REV-Compatible Logger) by 6328. Logs all messages from REV
+        // devices.
+        URCL.start(CANID.mapCanIdsToNames());
 
-    // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
-    // autonomous chooser on the dashboard.
-    createRobotContainer();
-  }
-
-
-  private void createRobotContainer() {
-    // Instantiate the RobotContainer based on the Robot ID.  This will perform all our button bindings, and put our
-    // autonomous chooser on the dashboard.
-
-    switch (Config.getRobotId()) {
-      case 0:
-        // m_robotContainer = new ContainerForTesting(); break; // testing
-        m_robotContainer = new NewRobotContainer(); break; //competition
-        
-      case 1:
-        m_robotContainer = new ClutchContainer(); break; //simulation
-
-      case 2:
-        m_robotContainer = new BeetleContainer(); break; //beetle
-
-      case 3:
-        m_robotContainer = new NewRobotContainer(); break; //poseidon
-        
-      default:
-        m_robotContainer = new NewRobotContainer();
-        DriverStation.reportError(
-            String.format("ISSUE WITH CONSTRUCTING THE ROBOT CONTAINER. \n " +
-                          "NewRobotContainer constructed by default. RobotID: %d", Config.getRobotId()), 
-            true);
+        // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
+        // autonomous chooser on the dashboard.
+        createRobotContainer();
     }
 
-     // Add CommandScheduler to shuffleboard so we can display what commands are scheduled
-    ShuffleboardTab basicDebuggingTab = Shuffleboard.getTab("BasicDebugging");
-    basicDebuggingTab
-      .add("CommandScheduler", CommandScheduler.getInstance())
-      .withPosition(3, 0)
-      .withSize(3, 6);
-  }
+    private void createRobotContainer() {
+        // Instantiate the RobotContainer based on the Robot ID.  This will perform all our button
+        // bindings, and put our
+        // autonomous chooser on the dashboard.
 
-  /**
-   * This function is called every robot packet, no matter the mode. Use this for items like
-   * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before LiveWindow and
-   * SmartDashboard integrated updating.
-   */
-  @Override
-  public void robotPeriodic() {
-    // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-    // commands, running already-scheduled commands, removing finished or interrupted commands,
-    // and running subsystem periodic() methods.  This must be called from the robot's periodic
-    // block in order for anything in the Command-based framework to work.
-    CommandScheduler.getInstance().run();
-  }
+        switch (Config.getRobotId()) {
+            case 0:
+                // m_robotContainer = new ContainerForTesting(); break; // testing
+                m_robotContainer = new NewRobotContainer();
+                break; // competition
 
-  /** This function is called once each time the robot enters Disabled mode. */
-  @Override
-  public void disabledInit() {}
+            case 1:
+                m_robotContainer = new ClutchContainer();
+                break; // simulation
 
-  @Override
-  public void disabledPeriodic() {}
+            case 2:
+                m_robotContainer = new BeetleContainer();
+                break; // beetle
 
-  /** This autonomous runs the autonomous command selected by your {@link PoseidonContainer} class. */
-  @Override
-  public void autonomousInit() {
-    m_autonomousCommand = m_robotContainer.getAutonomousCommand();
+            case 3:
+                m_robotContainer = new NewRobotContainer();
+                break; // poseidon
 
-    ArmSubsystem.getInstance().resetProfiledPIDController();
-    PhotonSubsystem.getInstance().resetTagAtBootup();
-    
-    // schedule the autonomous command (example)
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
-    }
-  }
+            default:
+                m_robotContainer = new NewRobotContainer();
+                DriverStation.reportError(
+                        String.format(
+                                "ISSUE WITH CONSTRUCTING THE ROBOT CONTAINER. \n "
+                                        + "NewRobotContainer constructed by default. RobotID: %d",
+                                Config.getRobotId()),
+                        true);
+        }
 
-  /** This function is called periodically during autonomous. */
-  @Override
-  public void autonomousPeriodic() {}
-
-  @Override
-  public void teleopInit() {
-    // This makes sure that the autonomous stops running when
-    // teleop starts running. If you want the autonomous to
-    // continue until interrupted by another command, remove
-    // this line or comment it out.
-    if (m_autonomousCommand != null) {
-      m_autonomousCommand.cancel();
+        // Add CommandScheduler to shuffleboard so we can display what commands are scheduled
+        ShuffleboardTab basicDebuggingTab = Shuffleboard.getTab("BasicDebugging");
+        basicDebuggingTab
+                .add("CommandScheduler", CommandScheduler.getInstance())
+                .withPosition(3, 0)
+                .withSize(3, 6);
     }
 
-    ArmSubsystem.getInstance().resetProfiledPIDController();
-    PhotonSubsystem.getInstance().resetTagAtBootup();
-  }
+    /**
+     * This function is called every robot packet, no matter the mode. Use this for items like
+     * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
+     *
+     * <p>This runs after the mode specific periodic functions, but before LiveWindow and
+     * SmartDashboard integrated updating.
+     */
+    @Override
+    public void robotPeriodic() {
+        // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
+        // commands, running already-scheduled commands, removing finished or interrupted commands,
+        // and running subsystem periodic() methods.  This must be called from the robot's periodic
+        // block in order for anything in the Command-based framework to work.
+        CommandScheduler.getInstance().run();
+    }
 
-  /** This function is called periodically during operator control. */
-  @Override
-  public void teleopPeriodic() {}
+    /** This function is called once each time the robot enters Disabled mode. */
+    @Override
+    public void disabledInit() {}
 
-  @Override
-  public void testInit() {
-    // Cancels all running commands at the start of test mode.
-    CommandScheduler.getInstance().cancelAll();
-  }
+    @Override
+    public void disabledPeriodic() {}
 
-  /** This function is called periodically during test mode. */
-  @Override
-  public void testPeriodic() {}
+    /** This autonomous runs the autonomous command selected by your {@link PoseidonContainer} class. */
+    @Override
+    public void autonomousInit() {
+        m_autonomousCommand = m_robotContainer.getAutonomousCommand();
+
+        ArmSubsystem.getInstance().resetProfiledPIDController();
+        PhotonSubsystem.getInstance().resetTagAtBootup();
+
+        // schedule the autonomous command (example)
+        if (m_autonomousCommand != null) {
+            m_autonomousCommand.schedule();
+        }
+    }
+
+    /** This function is called periodically during autonomous. */
+    @Override
+    public void autonomousPeriodic() {}
+
+    @Override
+    public void teleopInit() {
+        // This makes sure that the autonomous stops running when
+        // teleop starts running. If you want the autonomous to
+        // continue until interrupted by another command, remove
+        // this line or comment it out.
+        if (m_autonomousCommand != null) {
+            m_autonomousCommand.cancel();
+        }
+
+        ArmSubsystem.getInstance().resetProfiledPIDController();
+        PhotonSubsystem.getInstance().resetTagAtBootup();
+    }
+
+    /** This function is called periodically during operator control. */
+    @Override
+    public void teleopPeriodic() {}
+
+    @Override
+    public void testInit() {
+        // Cancels all running commands at the start of test mode.
+        CommandScheduler.getInstance().cancelAll();
+    }
+
+    /** This function is called periodically during test mode. */
+    @Override
+    public void testPeriodic() {}
 }

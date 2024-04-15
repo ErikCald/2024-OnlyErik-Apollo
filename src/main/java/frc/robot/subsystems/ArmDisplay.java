@@ -11,11 +11,11 @@ import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
+
 import frc.robot.Config.ArmConfig;
 
 public class ArmDisplay {
     private final double length = Units.metersToInches(ArmConfig.LENGTH_METERS);
-
 
     private final double windowX = 140;
     private final double windowY = 85;
@@ -69,8 +69,8 @@ public class ArmDisplay {
                 Mechanism2d mech2d, double lineWidth, Color8Bit color, String name) {
             MechanismRoot2d m_armPivotPoint = mech2d.getRoot(name + "ArmPivot", pivot1X, pivot1Y);
 
-            m_armMainLine = new MechanismLigament2d(name + "Arm1Line", length, 80, lineWidth,
-            color);
+            m_armMainLine =
+                    new MechanismLigament2d(name + "Arm1Line", length, 80, lineWidth, color);
             m_armPivotPoint.append(m_armMainLine);
 
             // m_arm2PivotPoint = m_mech2d.getRoot(name + "Arm2Pivot", windowX - 30, windowY - 15);

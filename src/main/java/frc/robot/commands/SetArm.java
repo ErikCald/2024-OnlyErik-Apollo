@@ -4,44 +4,42 @@
 
 package frc.robot.commands;
 
-import java.util.function.DoubleSupplier;
-
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
+
 import frc.robot.subsystems.ArmSubsystem;
 
+import java.util.function.DoubleSupplier;
+
 public class SetArm extends Command {
-  private DoubleSupplier angleDegree;
+    private DoubleSupplier angleDegree;
 
-  /** Creates a new SetArm. */
-  public SetArm(DoubleSupplier angleDegree) {
-    this.angleDegree = angleDegree;
-    // Use addRequirements() here to declare subsystem dependencies.
-    addRequirements(ArmSubsystem.getInstance());
-  }
+    /** Creates a new SetArm. */
+    public SetArm(DoubleSupplier angleDegree) {
+        this.angleDegree = angleDegree;
+        // Use addRequirements() here to declare subsystem dependencies.
+        addRequirements(ArmSubsystem.getInstance());
+    }
 
-  // Called when the command is initially scheduled.
-  @Override
-  public void initialize() {
-  }
+    // Called when the command is initially scheduled.
+    @Override
+    public void initialize() {}
 
-  // Called every time the scheduler runs while the command is scheduled.
-  @Override
-  public void execute() {
-    ArmSubsystem.getInstance().setJointAngle(Math.toRadians(angleDegree.getAsDouble()));
-  }
+    // Called every time the scheduler runs while the command is scheduled.
+    @Override
+    public void execute() {
+        ArmSubsystem.getInstance().setJointAngle(Math.toRadians(angleDegree.getAsDouble()));
+    }
 
-  // Called once the command ends or is interrupted.
-  @Override
-  public void end(boolean interrupted) {
-    ArmSubsystem.getInstance().stopMotors();
-  }
+    // Called once the command ends or is interrupted.
+    @Override
+    public void end(boolean interrupted) {
+        ArmSubsystem.getInstance().stopMotors();
+    }
 
-  // Returns true when the command should end.
-  @Override
-  public boolean isFinished() {
-    //keep running motor
-    return false;
-  }
+    // Returns true when the command should end.
+    @Override
+    public boolean isFinished() {
+        // keep running motor
+        return false;
+    }
 }
-

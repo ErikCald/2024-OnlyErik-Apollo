@@ -1,12 +1,11 @@
 package frc.lib.lib2706;
 
-import java.util.function.Consumer;
-
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.networktables.DoubleEntry;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.PubSubOption;
 
+import java.util.function.Consumer;
 
 public class UpdateSimpleFeedforward {
     private final double UPDATE_RATE_MS = 200; // in ms
@@ -16,19 +15,24 @@ public class UpdateSimpleFeedforward {
 
     /**
      * Create a UpdateFeedforward to update a {@link SimpleMotorFeedforward} object from networktables.
-     * 
+     *
      * @param setFeedforward A consumer to recieve an updated SimpleMotorFeedforward. Recommend: {@snippet (ff) -> m_topFF = ff}
      * @param tableName The table name to put the 3 entries in for kS, kV and kA
      * @param kS The default value for kS
      * @param kV The default value for kV
      * @param kA The default value for kA
      */
-    public UpdateSimpleFeedforward(Consumer<SimpleMotorFeedforward> setFeedforward, NetworkTable table, double kS, double kV, double kA) {
+    public UpdateSimpleFeedforward(
+            Consumer<SimpleMotorFeedforward> setFeedforward,
+            NetworkTable table,
+            double kS,
+            double kV,
+            double kA) {
         m_setFeedforward = setFeedforward;
         prevKS = kS;
         prevKV = kV;
         prevKA = kA;
-        
+
         NetworkTable ffTable = table.getSubTable("TuneSimpleFF");
         entryKS = ffTable.getDoubleTopic("kS").getEntry(kS, PubSubOption.periodic(UPDATE_RATE_MS));
         entryKV = ffTable.getDoubleTopic("kV").getEntry(kV, PubSubOption.periodic(UPDATE_RATE_MS));
@@ -42,7 +46,8 @@ public class UpdateSimpleFeedforward {
         }
 
         // Set the initial feedforward to the defaults or to previously set values on networktables
-        m_setFeedforward.accept(new SimpleMotorFeedforward(entryKS.get(), entryKV.get(), entryKA.get()));
+        m_setFeedforward.accept(
+                new SimpleMotorFeedforward(entryKS.get(), entryKV.get(), entryKA.get()));
     }
 
     /**

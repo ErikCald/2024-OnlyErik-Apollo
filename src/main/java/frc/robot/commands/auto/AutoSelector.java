@@ -4,9 +4,10 @@ import edu.wpi.first.networktables.IntegerEntry;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
+
 import frc.robot.subsystems.AnalogSelectorSubsystem;
 
-public class AutoSelector {    
+public class AutoSelector {
     private IntegerEntry entryChooseAuto;
 
     public AutoSelector() {
@@ -25,7 +26,7 @@ public class AutoSelector {
             } else {
                 return index;
             }
-        }       
+        }
     }
 
     public int getAnalogSelectorIndex() {
@@ -35,7 +36,7 @@ public class AutoSelector {
             int index = AnalogSelectorSubsystem.getInstance().getIndex();
 
             // If m_analogSelectorIndex is -1, set it to 0.
-            if(index == -1) {
+            if (index == -1) {
                 return 0;
             } else {
                 return index;
@@ -44,5 +45,4 @@ public class AutoSelector {
             return 0;
         }
     }
-    
 }

@@ -6,32 +6,31 @@ package frc.robot.commands;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+
 import frc.robot.subsystems.SwerveSubsystem;
 
 public class RotateToAngle extends TeleopSwerve {
-  private Rotation2d m_givenAngle;
-  private Rotation2d m_desiredAngle;
+    private Rotation2d m_givenAngle;
+    private Rotation2d m_desiredAngle;
 
-  /** Creates a new RotateAngleToVision. */
-  public RotateToAngle(
-      CommandXboxController driver,
-      Rotation2d angle) {
-    super(driver);
-    
-    m_givenAngle = angle;
-    m_desiredAngle = SwerveSubsystem.rotateForAlliance(m_givenAngle);
-  }
+    /** Creates a new RotateAngleToVision. */
+    public RotateToAngle(CommandXboxController driver, Rotation2d angle) {
+        super(driver);
 
-  // Called when the command is initially scheduled.
-  @Override
-  public void initialize() {
-    super.initialize();
-    m_desiredAngle = SwerveSubsystem.rotateForAlliance(m_givenAngle);
-    SwerveSubsystem.getInstance().resetDriveToPose();
-  }
+        m_givenAngle = angle;
+        m_desiredAngle = SwerveSubsystem.rotateForAlliance(m_givenAngle);
+    }
 
-  @Override
-  protected double calculateRotationVal() {
-    return SwerveSubsystem.getInstance().calculateRotation(m_desiredAngle);
-  }
+    // Called when the command is initially scheduled.
+    @Override
+    public void initialize() {
+        super.initialize();
+        m_desiredAngle = SwerveSubsystem.rotateForAlliance(m_givenAngle);
+        SwerveSubsystem.getInstance().resetDriveToPose();
+    }
+
+    @Override
+    protected double calculateRotationVal() {
+        return SwerveSubsystem.getInstance().calculateRotation(m_desiredAngle);
+    }
 }

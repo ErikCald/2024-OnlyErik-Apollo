@@ -4,13 +4,14 @@
 
 package frc.robot.commands;
 
-import java.util.function.BooleanSupplier;
-
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
+
 import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
+
+import java.util.function.BooleanSupplier;
 
 public class SubwooferShot extends Command {
     private final double SHORT_PERIOD = 0.3;
@@ -27,7 +28,11 @@ public class SubwooferShot extends Command {
     private Command feedNoteCommand;
 
     /** Creates a new SubwooferShot. */
-    public SubwooferShot(BooleanSupplier isButtonPressed, double armAngleDeg, double shooterRPM, double shooterTriggerRPM) {
+    public SubwooferShot(
+            BooleanSupplier isButtonPressed,
+            double armAngleDeg,
+            double shooterRPM,
+            double shooterTriggerRPM) {
         m_isButtonPressed = isButtonPressed;
 
         m_armAngleRad = Math.toRadians(armAngleDeg);
@@ -54,7 +59,7 @@ public class SubwooferShot extends Command {
     @Override
     public void execute() {
         ArmSubsystem.getInstance().setJointAngle(m_armAngleRad);
-        ShooterSubsystem.getInstance().setRPM(m_shooterRPM);        
+        ShooterSubsystem.getInstance().setRPM(m_shooterRPM);
 
         if (!hasPassedShortPeriod && m_timer.hasElapsed(SHORT_PERIOD)) {
             hasPassedShortPeriod = true;
@@ -68,7 +73,8 @@ public class SubwooferShot extends Command {
             dontEndUntilButtonPressed = false;
         }
 
-        if (m_isButtonPressed.getAsBoolean() && ShooterSubsystem.getInstance().getVelocityRPM() > m_shooterTriggerRPM) {
+        if (m_isButtonPressed.getAsBoolean()
+                && ShooterSubsystem.getInstance().getVelocityRPM() > m_shooterTriggerRPM) {
             feedNoteCommand.schedule();
         }
     }
