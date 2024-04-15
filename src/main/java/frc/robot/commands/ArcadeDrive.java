@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 import frc.robot.Config;
-import frc.robot.subsystems.DiffTalonSubsystem;
+import frc.robot.subsystems.mechanisms.DiffTalonSubsystem;
 
 import java.util.function.Supplier;
 

@@ -1,4 +1,4 @@
-package frc.robot.subsystems;
+package frc.robot.subsystems.swerve;
 
 import static frc.lib.lib2706.ErrorCheck.configureSpark;
 import static frc.lib.lib2706.ErrorCheck.errSpark;
@@ -29,6 +29,7 @@ import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;
 import frc.robot.Config;
 import frc.robot.Robot;
+import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
 public class SwerveModule {
 

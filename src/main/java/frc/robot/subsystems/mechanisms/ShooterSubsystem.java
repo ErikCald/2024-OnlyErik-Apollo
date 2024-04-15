@@ -1,7 +1,4 @@
-package frc.robot.subsystems;
-
-import static frc.robot.subsystems.ShooterStateMachine.ShooterModes.*;
-import static frc.robot.subsystems.ShooterStateMachine.States.*;
+package frc.robot.subsystems.mechanisms;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
@@ -23,8 +20,12 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.lib.lib2706.ErrorCheck;
 import frc.lib.lib2706.TunableNumber;
 import frc.robot.Config;
-import frc.robot.subsystems.ShooterStateMachine.ShooterModes;
-import frc.robot.subsystems.ShooterStateMachine.States;
+import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
+import frc.robot.subsystems.mechanisms.ShooterStateMachine.States;
+import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
+
+import static frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes.*;
+import static frc.robot.subsystems.mechanisms.ShooterStateMachine.States.*;
 
 import java.util.function.BooleanSupplier;
 

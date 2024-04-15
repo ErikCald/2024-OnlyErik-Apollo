@@ -1,4 +1,4 @@
-package frc.robot.subsystems;
+package frc.robot.subsystems.arm;
 
 import static frc.lib.lib2706.ErrorCheck.configureSpark;
 import static frc.lib.lib2706.ErrorCheck.errSpark;
@@ -27,6 +27,7 @@ import frc.lib.lib2706.SubsystemChecker;
 import frc.lib.lib2706.SubsystemChecker.SubsystemType;
 import frc.robot.Config;
 import frc.robot.Config.ArmConfig;
+import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
 public class ArmSubsystem extends SubsystemBase {
     private static ArmSubsystem instance =

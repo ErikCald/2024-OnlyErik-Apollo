@@ -29,9 +29,9 @@ import frc.robot.commands.Shooter_PID_Tuner;
 import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.auto.AutoRoutines;
 import frc.robot.commands.auto.AutoSelector;
-import frc.robot.subsystems.IntakeSubsystem;
-import frc.robot.subsystems.ShooterSubsystem;
-import frc.robot.subsystems.SwerveSubsystem;
+import frc.robot.subsystems.mechanisms.IntakeSubsystem;
+import frc.robot.subsystems.mechanisms.ShooterSubsystem;
+import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since

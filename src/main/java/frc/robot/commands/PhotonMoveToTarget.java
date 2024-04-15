@@ -11,8 +11,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.Config.PhotonConfig;
-import frc.robot.subsystems.PhotonSubsystem;
-import frc.robot.subsystems.SwerveSubsystem;
+import frc.robot.subsystems.swerve.SwerveSubsystem;
+import frc.robot.subsystems.vision.PhotonSubsystem;
 
 // class
 public class PhotonMoveToTarget extends Command {

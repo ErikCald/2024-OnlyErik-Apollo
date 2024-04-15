@@ -34,11 +34,11 @@ import frc.robot.commands.SubwooferShot;
 import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.auto.AutoRoutines;
 import frc.robot.commands.auto.AutoSelector;
-import frc.robot.subsystems.IntakeStateMachine.IntakeModes;
-import frc.robot.subsystems.IntakeSubsystem;
-import frc.robot.subsystems.ShooterStateMachine.ShooterModes;
-import frc.robot.subsystems.ShooterSubsystem;
-import frc.robot.subsystems.SwerveSubsystem;
+import frc.robot.subsystems.mechanisms.IntakeSubsystem;
+import frc.robot.subsystems.mechanisms.ShooterSubsystem;
+import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes;
+import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
+import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
