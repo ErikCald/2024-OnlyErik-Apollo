@@ -16,7 +16,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 
-import frc.lib.lib3512.config.SwerveModuleConstants;
+import frc.lib.lib2706.swerve.SwerveModuleConstants;
 
 import java.io.BufferedReader;
 import java.nio.file.Files;
@@ -26,6 +26,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * ROBOT IDs
+ *
+ * ID 0: Competition Robot (Crescendo) (NEEDS UPDATE ON robot.conf)
+ * ID 1: Simulation of Comp Robot (Crescendo in Simulation)
+ * ID 2: Beetle (Small Talon Tank Drive)
+ * ID 3: Poseidon (Charged Up) (NEEDS UPDATE ON robot.conf)
+ **/
 public final class Config {
     /**
      * Instructions for set up of robot.conf file on robot
@@ -53,6 +61,55 @@ public final class Config {
      * ID of the robot that code is running on
      */
     private static int robotId = -1;
+
+    private static final int SIMULATION_ID = 1;
+
+    /**
+     * Obtain the robot id found in the robot.conf file
+     *
+     * @return The id of the robot
+     */
+    public static int getRobotId() {
+
+        if (robotId < 0) {
+            // Backup in case the FMS is attached, force to comp robot
+            if (DriverStation.isFMSAttached()) {
+                robotId = 0;
+            }
+
+            // Set the Id to the simulation if simulating
+            else if (RobotBase.isSimulation()) {
+                robotId = SIMULATION_ID;
+
+                // Not simulation, read the file on the roborio for it's robot id.
+            } else {
+                try (BufferedReader reader = Files.newBufferedReader(ROBOT_ID_LOC)) {
+                    robotId = Integer.parseInt(reader.readLine());
+                } catch (Exception e) {
+                    robotId = 0; // DEFAULT TO COMP ROBOT IF NO ID IS FOUND
+                }
+            }
+        }
+
+        return robotId;
+    }
+
+    /**
+     * Returns one of the values passed based on the robot ID
+     *
+     * @param first The first value (default value)
+     * @param more  Other values that could be selected
+     * @param <T>   The type of the value
+     * @return The value selected based on the ID of the robot
+     */
+    @SafeVarargs
+    public static <T> T robotSpecific(T first, T... more) {
+        if (getRobotId() < 1 || getRobotId() > more.length) {
+            return first;
+        } else {
+            return more[getRobotId() - 1];
+        }
+    }
 
     public enum CANID {
         PIGEON(robotSpecific(16, -1, 27, 30)),
@@ -95,76 +152,21 @@ public final class Config {
             }
             return map;
         }
+
+        public static final int CANTIMEOUT_MS = 100;
     }
 
-    public static final int CANTIMEOUT_MS = 100;
-
-    private static final int SIMULATION_ID = 1;
-
-    /**
-     * Returns one of the values passed based on the robot ID
-     *
-     * @param first The first value (default value)
-     * @param more  Other values that could be selected
-     * @param <T>   The type of the value
-     * @return The value selected based on the ID of the robot
-     */
-    @SafeVarargs
-    public static <T> T robotSpecific(T first, T... more) {
-        if (getRobotId() < 1 || getRobotId() > more.length) {
-            return first;
-        } else {
-            return more[getRobotId() - 1];
-        }
+    public static final class GeneralConfig {
+        public static final boolean enableTunableData = false;
+        public static final double joystickDeadband = 0.1;
     }
-
-    /**
-     * Obtain the robot id found in the robot.conf file
-     *
-     * @return The id of the robot
-     */
-    public static int getRobotId() {
-
-        if (robotId < 0) {
-            // Backup in case the FMS is attached, force to comp robot
-            if (DriverStation.isFMSAttached()) {
-                robotId = 0;
-            }
-
-            // Set the Id to the simulation if simulating
-            else if (RobotBase.isSimulation()) {
-                robotId = SIMULATION_ID;
-
-                // Not simulation, read the file on the roborio for it's robot id.
-            } else {
-                try (BufferedReader reader = Files.newBufferedReader(ROBOT_ID_LOC)) {
-                    robotId = Integer.parseInt(reader.readLine());
-                } catch (Exception e) {
-                    robotId = 0; // DEFAULT TO COMP ROBOT IF NO ID IS FOUND
-                }
-            }
-        }
-
-        return robotId;
-    }
-
-    /**
-     * ROBOT IDs
-     *
-     * ID 0: Competition Robot (Crescendo) (NEEDS UPDATE ON robot.conf)
-     * ID 1: Simulation of Comp Robot (Crescendo in Simulation)
-     * ID 2: Beetle (Small Talon Tank Drive)
-     * ID 3: Poseidon (Charged Up) (NEEDS UPDATE ON robot.conf)
-     **/
-
-    /** ADD CONSTANTS BELOW THIS LINE */
-    public static final boolean swerveTuning =
-            false; // tune swerve? Turn this to false for competition
 
     public static final boolean disableStateBasedProgramming =
             true; // True to disable state based programming and use only simple commands
 
-    public static int ANALOG_SELECTOR_PORT = robotSpecific(3, -1, -1, 0);
+    public static final class RioConfig {
+        public static int ANALOG_SELECTOR_PORT = robotSpecific(3, -1, -1, 0);
+    }
 
     public static final class PhotonConfig {
         public static boolean USE_3D_TAGS = true;
@@ -296,23 +298,16 @@ public final class Config {
         public static int CLIMBER = CANID.CLIMBER.val();
     }
 
-    public static final class Swerve {
-        public static final double stickDeadband = 0.1;
-
-        public static final int pigeonID = CANID.PIGEON.val();
+    public static final class SwerveConfig {
         public static final boolean invertGyro = false; // Always ensure Gyro is CCW+ CW-
 
-        /* Drivetrain Constants Changed */
         public static final double trackWidth = Units.inchesToMeters(25.787);
         public static final double wheelBase = Units.inchesToMeters(20.472);
         public static final double wheelDiameter = Units.inchesToMeters(3.884);
         public static final double wheelCircumference = wheelDiameter * Math.PI;
 
-        public static final double openLoopRamp = 0.25;
-        public static final double closedLoopRamp = 0.0;
-
         public static final double driveGearRatio = (8.14 / 1.0);
-        public static final double angleGearRatio = (12.8 / 1.0);
+        public static final double steerGearRatio = (12.8 / 1.0);
 
         public static final double synchTolerance = 1;
 
@@ -324,36 +319,36 @@ public final class Config {
                         new Translation2d(-wheelBase / 2.0, -trackWidth / 2.0));
 
         /* Swerve Voltage Compensation Changed */
-        public static final double voltageComp = 11.0;
+        public static final double voltageComp = 12.0;
 
         /* Swerve Current Limiting, Changed */
-        public static final int angleContinuousCurrentLimit = 30; // 20
+        public static final int steerContinuousCurrentLimit = 30; // 20
         public static final int driveContinuousCurrentLimit = 50;
 
-        /* Angle Motor PID Values, Changed */
-        public static final double angleKP = 2.0; // 1.0
-        public static final double angleKI = 0.0;
-        public static final double angleKD = 0.1; // 0.0
-        public static final double angleKFF = 0.0;
+        /* Steer Motor PID Values, Changed */
+        public static final double steerKP = 2.0;
+        public static final double steerKI = 0.0;
+        public static final double steerKD = 0.1;
 
         /* Drive Motor PID Values, Changed*/
-        public static final double driveKP = 0.2; // 0.2
+        public static final double driveKP = 0.2;
         public static final double driveKI = 0.0;
         public static final double driveKD = 0.0;
         public static final double driveKFF = 0.0;
 
         /* Drive Motor Characterization Values Changed */
-        public static final double driveKS = 0.667;
-        public static final double driveKV = 4.0; // 5
-        public static final double driveKA = 0.5;
+        public static final double driveKS = 0.667; // Volts for static friction
+        public static final double driveKV = 4.0; // Volts per mps
+        public static final double driveKA = 0.5; // Volts per mps^2
 
-        /* Drive Motor Conversion Factors */
-        public static final double driveConversionPositionFactor =
-                (wheelDiameter * Math.PI) / driveGearRatio;
-        public static final double driveConversionVelocityFactor =
-                driveConversionPositionFactor / 60.0;
-        public static final double angleConversionFactor = 2 * Math.PI / angleGearRatio;
-        public static final double angleVelocityConversionFactor = angleConversionFactor / 60.0;
+        public static final double driveVelAllowableError = 0.001; // mps
+        public static final double steerPosAllowableError = Math.toRadians(0.01);
+
+        /* Conversion Factors */
+        public static final double driveConvPosFactor = (wheelDiameter * Math.PI) / driveGearRatio;
+        public static final double driveConvVelFactor = driveConvPosFactor / 60.0;
+        public static final double steerConvFactor = 2 * Math.PI / steerGearRatio;
+        public static final double steerVelConvFactor = steerConvFactor / 60.0;
 
         /* Swerve ProfiledPidController values */
         public static final double translationAllowableError = 0.01;
@@ -385,55 +380,55 @@ public final class Config {
         public static final double maxAngularVelocity = Math.PI * 3.0;
 
         /* Neutral Modes */
-        public static final IdleMode angleNeutralMode = IdleMode.kBrake;
+        public static final IdleMode steerIdleMode = IdleMode.kBrake;
         public static final IdleMode driveNeutralMode = IdleMode.kBrake;
 
         /* Motor Inverts */
         public static final boolean driveInvert = false;
-        public static final boolean angleInvert = false;
+        public static final boolean steerInvert = false;
 
-        /* Angle Encoder Invert */
+        /* Steer Encoder Invert */
         public static final boolean canCoderInvert = false;
 
         /* Module Specific Constants */
         /* Front Left Module - Module 0 Changed*/
         public static final class Mod0 {
             public static final int driveMotorID = CANID.SWERVE_FL_DRIVE.val();
-            public static final int angleMotorID = CANID.SWERVE_FL_STEERING.val();
+            public static final int steerMotorID = CANID.SWERVE_FL_STEERING.val();
             public static final int canCoderID = CANID.SWERVE_FL_CANCODER.val();
-            public static final Rotation2d angleOffset = Rotation2d.fromDegrees(270);
+            public static final Rotation2d steerOffset = Rotation2d.fromDegrees(270);
             public static final SwerveModuleConstants constants =
-                    new SwerveModuleConstants(driveMotorID, angleMotorID, canCoderID, angleOffset);
+                    new SwerveModuleConstants(driveMotorID, steerMotorID, canCoderID, steerOffset);
         }
 
         /* Front Right Module - Module 1 Changed*/
         public static final class Mod1 {
             public static final int driveMotorID = CANID.SWERVE_FR_DRIVE.val();
-            public static final int angleMotorID = CANID.SWERVE_FR_STEERING.val();
+            public static final int steerMotorID = CANID.SWERVE_FR_STEERING.val();
             public static final int canCoderID = CANID.SWERVE_FR_CANCODER.val();
-            public static final Rotation2d angleOffset = Rotation2d.fromDegrees(157.5);
+            public static final Rotation2d steerOffset = Rotation2d.fromDegrees(157.5);
             public static final SwerveModuleConstants constants =
-                    new SwerveModuleConstants(driveMotorID, angleMotorID, canCoderID, angleOffset);
+                    new SwerveModuleConstants(driveMotorID, steerMotorID, canCoderID, steerOffset);
         }
 
         /* Back Left Module - Module 2 Changed*/
         public static final class Mod2 {
             public static final int driveMotorID = CANID.SWERVE_RL_DRIVE.val();
-            public static final int angleMotorID = CANID.SWERVE_RL_STEERING.val();
+            public static final int steerMotorID = CANID.SWERVE_RL_STEERING.val();
             public static final int canCoderID = CANID.SWERVE_RL_CANCODER.val();
-            public static final Rotation2d angleOffset = Rotation2d.fromDegrees(192);
+            public static final Rotation2d steerOffset = Rotation2d.fromDegrees(192);
             public static final SwerveModuleConstants constants =
-                    new SwerveModuleConstants(driveMotorID, angleMotorID, canCoderID, angleOffset);
+                    new SwerveModuleConstants(driveMotorID, steerMotorID, canCoderID, steerOffset);
         }
 
         /* Back Right Module - Module 3 Changed*/
         public static final class Mod3 {
             public static final int driveMotorID = CANID.SWERVE_RR_DRIVE.val();
-            public static final int angleMotorID = CANID.SWERVE_RR_STEERING.val();
+            public static final int steerMotorID = CANID.SWERVE_RR_STEERING.val();
             public static final int canCoderID = CANID.SWERVE_RR_CANCODER.val();
-            public static final Rotation2d angleOffset = Rotation2d.fromDegrees(6);
+            public static final Rotation2d steerOffset = Rotation2d.fromDegrees(6);
             public static final SwerveModuleConstants constants =
-                    new SwerveModuleConstants(driveMotorID, angleMotorID, canCoderID, angleOffset);
+                    new SwerveModuleConstants(driveMotorID, steerMotorID, canCoderID, steerOffset);
         }
     }
 

@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Config;
+import frc.robot.Config.RioConfig;
 
 public class AnalogSelectorSubsystem extends SubsystemBase {
 
@@ -79,7 +79,7 @@ public class AnalogSelectorSubsystem extends SubsystemBase {
     private AnalogInput analogInput;
 
     public AnalogSelectorSubsystem() {
-        if (Config.ANALOG_SELECTOR_PORT != -1) {
+        if (RioConfig.ANALOG_SELECTOR_PORT != -1) {
             initializeSubsystem();
         } else {
             analogInput = null;
@@ -87,7 +87,7 @@ public class AnalogSelectorSubsystem extends SubsystemBase {
     }
 
     public void initializeSubsystem() {
-        analogInput = new AnalogInput(Config.ANALOG_SELECTOR_PORT);
+        analogInput = new AnalogInput(RioConfig.ANALOG_SELECTOR_PORT);
     }
 
     public boolean isActive() {

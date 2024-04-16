@@ -75,8 +75,20 @@ public class ErrorTrackingSubsystem extends SubsystemBase {
     }
 
     /**
-     * Function to register a new CANSparkMax to track errors from.
-     * @param motor A CANSparkMax object (the motor).
+     * Registers the given CANSparkMax motors to be tracked for errors.
+     *
+     * @param motors the CANSparkMax motors to be registered
+     */
+    public void register(CANSparkMax... motors) {
+        for (CANSparkMax motor : motors) {
+            register(motor);
+        }
+    }
+
+    /**
+     * Registers the given CANSparkMax motors to be tracked for errors.
+     *
+     * @param motors the CANSparkMax motors to be registered
      */
     public void register(CANSparkMax motor) {
         statusTabEntries.add(

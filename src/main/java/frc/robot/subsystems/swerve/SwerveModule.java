@@ -2,6 +2,7 @@ package frc.robot.subsystems.swerve;
 
 import static frc.lib.lib2706.ErrorCheck.configureSpark;
 import static frc.lib.lib2706.ErrorCheck.errSpark;
+import static frc.lib.lib2706.NTUtil.createDoublePublisherFast;
 
 import com.ctre.phoenix.sensors.CANCoder;
 import com.revrobotics.CANSparkBase;
@@ -16,228 +17,158 @@ import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.networktables.DoubleEntry;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.PubSubOption;
 
-import frc.lib.lib3512.config.SwerveModuleConstants;
+import frc.lib.lib2706.TunableDouble;
+import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.lib.lib3512.util.CANCoderUtil;
 import frc.lib.lib3512.util.CANCoderUtil.CCUsage;
 import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;
-import frc.robot.Config;
+import frc.robot.Config.NTConfig;
+import frc.robot.Config.SwerveConfig;
 import frc.robot.Robot;
 import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
 public class SwerveModule {
-
-    private NetworkTable swerveModuleTable;
-    private NetworkTable swerveTable;
-    private DoublePublisher currentSpeedEntry;
-    private DoublePublisher currentAngleEntry;
-    private DoublePublisher speedError;
-    private DoublePublisher angleError;
-    private DoublePublisher desiredSpeedEntry;
-    private DoublePublisher desiredAngleEntry;
-    private DoubleEntry entryAngleOffset;
-    private DoublePublisher canCoderAngleEntry;
-
-    public int moduleNumber;
-    private Rotation2d lastAngle;
-    private Rotation2d angleOffset;
-
-    private CANSparkMax angleMotor;
-    private CANSparkMax driveMotor;
+    private CANSparkMax steerMotor, driveMotor;
 
     private RelativeEncoder driveEncoder;
-    private RelativeEncoder integratedAngleEncoder;
-    private CANCoder angleEncoder;
+    private RelativeEncoder integratedSteerEncoder;
+    private CANCoder steerCancoder;
 
-    private final SparkPIDController driveController;
-    private final SparkPIDController angleController;
-
-    private boolean synchronizeEncoderQueued = false;
+    private SparkPIDController driveController;
+    private SparkPIDController steerController;
 
     private SimpleMotorFeedforward feedforward =
             new SimpleMotorFeedforward(
-                    Config.Swerve.driveKS, Config.Swerve.driveKV, Config.Swerve.driveKA);
+                    SwerveConfig.driveKS, SwerveConfig.driveKV, SwerveConfig.driveKA);
 
-    public SwerveModule(
-            int moduleNumber, SwerveModuleConstants moduleConstants, String ModuleName) {
-        this.moduleNumber = moduleNumber;
+    private NetworkTable moduleTable;
+    private DoublePublisher pubMeasuredSpeed, pubDesiredSpeed, pubSpeedError;
+    private DoublePublisher pubMeasuredAngle, pubDesiredAngle, pubAngleError;
+    private DoublePublisher pubCancoderAngle;
 
-        angleOffset = moduleConstants.angleOffset;
+    private TunableDouble tunableSteerOffset;
 
-        String tableName = "SwerveChassis/SwerveModule" + ModuleName;
-        swerveModuleTable = NetworkTableInstance.getDefault().getTable(tableName);
-        swerveTable = NetworkTableInstance.getDefault().getTable("SwerveChassis");
+    public SwerveModule(SwerveModuleConstants moduleConstants, String ModuleName) {
+        /* Steer Encoder Config */
+        steerCancoder = new CANCoder(moduleConstants.cancoderCanID);
+        configSteerCancoder();
 
-        /* Angle Encoder Config */
-        angleEncoder = new CANCoder(moduleConstants.cancoderID);
-        configAngleEncoder();
-
-        /* Angle Motor Config */
-        angleMotor = new CANSparkMax(moduleConstants.angleMotorID, MotorType.kBrushless);
-        integratedAngleEncoder = angleMotor.getEncoder();
-        angleController = angleMotor.getPIDController();
-        configAngleMotor();
+        /* Steer Motor Config */
+        steerMotor = new CANSparkMax(moduleConstants.steerCanID, MotorType.kBrushless);
+        integratedSteerEncoder = steerMotor.getEncoder();
+        steerController = steerMotor.getPIDController();
+        configSteerMotor();
 
         /* Drive Motor Config */
-        driveMotor = new CANSparkMax(moduleConstants.driveMotorID, MotorType.kBrushless);
+        driveMotor = new CANSparkMax(moduleConstants.driveCanID, MotorType.kBrushless);
         driveEncoder = driveMotor.getEncoder();
         driveController = driveMotor.getPIDController();
         configDriveMotor();
 
-        lastAngle = getState().angle;
+        /* Networktable Setup */
+        moduleTable = NTConfig.swerveTable.getSubTable("SwerveModule" + ModuleName);
 
-        desiredSpeedEntry =
-                swerveModuleTable
-                        .getDoubleTopic("Desired speed (mps)")
-                        .publish(PubSubOption.periodic(0.02));
-        desiredAngleEntry =
-                swerveModuleTable
-                        .getDoubleTopic("Desired angle (deg)")
-                        .publish(PubSubOption.periodic(0.02));
-        currentSpeedEntry =
-                swerveModuleTable
-                        .getDoubleTopic("Current speed (mps)")
-                        .publish(PubSubOption.periodic(0.02));
-        currentAngleEntry =
-                swerveModuleTable
-                        .getDoubleTopic("Current angle (rad)")
-                        .publish(PubSubOption.periodic(0.02));
-        speedError =
-                swerveModuleTable
-                        .getDoubleTopic("Speed error (mps)")
-                        .publish(PubSubOption.periodic(0.02));
-        angleError =
-                swerveModuleTable
-                        .getDoubleTopic("Angle error (deg)")
-                        .publish(PubSubOption.periodic(0.02));
-        entryAngleOffset =
-                swerveModuleTable
-                        .getDoubleTopic("Angle Offset (deg)")
-                        .getEntry(angleOffset.getDegrees());
-        canCoderAngleEntry =
-                swerveModuleTable
-                        .getDoubleTopic("Cancoder (deg)")
-                        .publish(PubSubOption.periodic(0.02));
+        pubMeasuredSpeed = createDoublePublisherFast(moduleTable, "Measured Speed (mps)");
+        pubDesiredSpeed = createDoublePublisherFast(moduleTable, "Desired Speed (mps)");
+        pubSpeedError = createDoublePublisherFast(moduleTable, " Speed Error (mps)");
 
-        entryAngleOffset.accept(angleOffset.getDegrees());
+        pubMeasuredAngle = createDoublePublisherFast(moduleTable, "Measured Angle (deg)");
+        pubDesiredAngle = createDoublePublisherFast(moduleTable, "Desired Angle (deg)");
+        pubAngleError = createDoublePublisherFast(moduleTable, "Angle Error (deg)");
 
+        pubCancoderAngle = createDoublePublisherFast(moduleTable, "Cancoder Angle (deg)");
+
+        tunableSteerOffset =
+                new TunableDouble(
+                        "Angle Offset (deg)",
+                        moduleTable,
+                        moduleConstants.steerOffset.getDegrees());
+
+        /* Register CANSparkMaxs to log fault codes */
+        ErrorTrackingSubsystem.getInstance().register(steerMotor, driveMotor);
+
+        /* Reset the integrated steering encoder from absolute cancoder */
         resetToAbsolute();
+
+        /* Burn settings to flash */
         burnFlash();
-
-        ErrorTrackingSubsystem.getInstance().register(angleMotor);
-        ErrorTrackingSubsystem.getInstance().register(driveMotor);
-    }
-
-    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop) {
-        setDesiredState(desiredState, isOpenLoop, false);
-    }
-
-    public void setDesiredState(
-            SwerveModuleState desiredState, boolean isOpenLoop, boolean isDisableAntiJitter) {
-        // Custom optimize command, since default WPILib optimize assumes continuous controller
-        // which
-        // REV and CTRE are not
-
-        desiredState = SwerveModuleState.optimize(desiredState, getState().angle);
-
-        setAngle(desiredState, isDisableAntiJitter);
-        setSpeed(desiredState, isOpenLoop);
-
-        desiredAngleEntry.accept(desiredState.angle.getRadians());
-        desiredSpeedEntry.accept(desiredState.speedMetersPerSecond);
-        speedError.accept((desiredState.speedMetersPerSecond) - (driveEncoder.getVelocity()));
-        angleError.accept((desiredState.angle.getRadians()) - (getAngle().getRadians()));
     }
 
     /**
-     * Resets Position Encoder
+     * Configures the steer CANCoder
      */
-    public void resetToAbsolute() {
-        double absolutePosition = getCanCoder().getRadians() - angleOffset.getRadians();
-        integratedAngleEncoder.setPosition(absolutePosition);
-        lastAngle = getAngle();
+    private void configSteerCancoder() {
+        steerCancoder.configFactoryDefault();
+        CANCoderUtil.setCANCoderBusUsage(steerCancoder, CCUsage.kMinimal);
+        steerCancoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);
     }
 
-    private void configAngleEncoder() {
-        angleEncoder.configFactoryDefault();
-        CANCoderUtil.setCANCoderBusUsage(angleEncoder, CCUsage.kMinimal);
-        angleEncoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);
-    }
-
-    private void configAngleMotor() {
-        configureSpark("Angle restore factory defaults", () -> angleMotor.restoreFactoryDefaults());
-        CANSparkMaxUtil.setCANSparkMaxBusUsage(angleMotor, Usage.kAll);
+    /**
+     * Configures the steer motor
+     */
+    private void configSteerMotor() {
+        configureSpark("Steer restore factory defaults", () -> steerMotor.restoreFactoryDefaults());
+        CANSparkMaxUtil.setCANSparkMaxBusUsage(steerMotor, Usage.kAll);
         configureSpark(
-                "Angle smart current limit",
-                () -> angleMotor.setSmartCurrentLimit(Config.Swerve.angleContinuousCurrentLimit));
-        angleMotor.setInverted(Config.Swerve.angleInvert);
+                "Steer current limit",
+                () -> steerMotor.setSmartCurrentLimit(SwerveConfig.steerContinuousCurrentLimit));
+        steerMotor.setInverted(SwerveConfig.steerInvert);
+        configureSpark("Steer idle mode", () -> steerMotor.setIdleMode(SwerveConfig.steerIdleMode));
         configureSpark(
-                "Angle idle mode", () -> angleMotor.setIdleMode(Config.Swerve.angleNeutralMode));
-        configureSpark(
-                "Angle position conversion factor",
+                "Steer position conversion factor",
                 () ->
-                        integratedAngleEncoder.setPositionConversionFactor(
-                                Config.Swerve.angleConversionFactor));
+                        integratedSteerEncoder.setPositionConversionFactor(
+                                SwerveConfig.steerConvFactor));
         configureSpark(
-                "Angle velocity conversion factor",
+                "Steer velocity conversion factor",
                 () ->
-                        integratedAngleEncoder.setVelocityConversionFactor(
-                                Config.Swerve.angleVelocityConversionFactor));
-        configureSpark("Angle set P", () -> angleController.setP(Config.Swerve.angleKP));
-        configureSpark("Angle set I", () -> angleController.setI(Config.Swerve.angleKI));
-        configureSpark("Angle set D", () -> angleController.setD(Config.Swerve.angleKD));
-        configureSpark("Angle set FF", () -> angleController.setFF(Config.Swerve.angleKFF));
+                        integratedSteerEncoder.setVelocityConversionFactor(
+                                SwerveConfig.steerVelConvFactor));
+        configureSpark("Steer set P", () -> steerController.setP(SwerveConfig.steerKP));
+        configureSpark("Steer set I", () -> steerController.setI(SwerveConfig.steerKI));
+        configureSpark("Steer set D", () -> steerController.setD(SwerveConfig.steerKD));
+        configureSpark("Steer set FF", () -> steerController.setFF(0.0));
         configureSpark(
-                "Angle set pid wrap min", () -> angleController.setPositionPIDWrappingMinInput(0));
+                "Steer set pid wrap min", () -> steerController.setPositionPIDWrappingMinInput(0));
         configureSpark(
-                "Angle set pid wrap max",
-                () -> angleController.setPositionPIDWrappingMaxInput(2 * Math.PI));
+                "Steer set pid wrap max",
+                () -> steerController.setPositionPIDWrappingMaxInput(2 * Math.PI));
         configureSpark(
-                "Angle set pid wrap", () -> angleController.setPositionPIDWrappingEnabled(true));
+                "Steer set pid wrap", () -> steerController.setPositionPIDWrappingEnabled(true));
         configureSpark(
-                "Angle enable Volatage Compensation",
-                () -> angleMotor.enableVoltageCompensation(Config.Swerve.voltageComp));
+                "Steer enable Volatage Compensation",
+                () -> steerMotor.enableVoltageCompensation(SwerveConfig.voltageComp));
     }
 
+    /*
+     * Config the drive motor
+     */
     private void configDriveMotor() {
         configureSpark("Drive factory defaults", () -> driveMotor.restoreFactoryDefaults());
         CANSparkMaxUtil.setCANSparkMaxBusUsage(driveMotor, Usage.kAll);
         configureSpark(
                 "Drive smart current limit",
-                () -> driveMotor.setSmartCurrentLimit(Config.Swerve.driveContinuousCurrentLimit));
-        driveMotor.setInverted(Config.Swerve.driveInvert);
+                () -> driveMotor.setSmartCurrentLimit(SwerveConfig.driveContinuousCurrentLimit));
+        driveMotor.setInverted(SwerveConfig.driveInvert);
         configureSpark(
-                "Drive idle mode", () -> driveMotor.setIdleMode(Config.Swerve.driveNeutralMode));
+                "Drive idle mode", () -> driveMotor.setIdleMode(SwerveConfig.driveNeutralMode));
         configureSpark(
                 "Drive velocity conversion factor",
-                () ->
-                        driveEncoder.setVelocityConversionFactor(
-                                Config.Swerve.driveConversionVelocityFactor));
+                () -> driveEncoder.setVelocityConversionFactor(SwerveConfig.driveConvVelFactor));
         configureSpark(
                 "Drive position conversion factor",
-                () ->
-                        driveEncoder.setPositionConversionFactor(
-                                Config.Swerve.driveConversionPositionFactor));
-        configureSpark("Drive set P", () -> driveController.setP(Config.Swerve.driveKP));
-        configureSpark("Drive set I", () -> driveController.setI(Config.Swerve.driveKI));
-        configureSpark("Drive set D", () -> driveController.setD(Config.Swerve.driveKD));
-        configureSpark("Drive set FF", () -> driveController.setFF(Config.Swerve.driveKFF));
-        configureSpark(
-                "Drive set pid wrap min", () -> driveController.setPositionPIDWrappingMinInput(0));
-        configureSpark(
-                "Drive set pid wrap max",
-                () -> driveController.setPositionPIDWrappingMaxInput(2 * Math.PI));
-        configureSpark(
-                "Drive set pid wrap", () -> driveController.setPositionPIDWrappingEnabled(true));
+                () -> driveEncoder.setPositionConversionFactor(SwerveConfig.driveConvPosFactor));
+        configureSpark("Drive set P", () -> driveController.setP(SwerveConfig.driveKP));
+        configureSpark("Drive set I", () -> driveController.setI(SwerveConfig.driveKI));
+        configureSpark("Drive set D", () -> driveController.setD(SwerveConfig.driveKD));
+        configureSpark("Drive set FF", () -> driveController.setFF(SwerveConfig.driveKFF));
         configureSpark(
                 "Drive voltage comp",
-                () -> driveMotor.enableVoltageCompensation(Config.Swerve.voltageComp));
+                () -> driveMotor.enableVoltageCompensation(SwerveConfig.voltageComp));
         configureSpark("Drive set position", () -> driveEncoder.setPosition(0.0));
     }
 
@@ -251,23 +182,58 @@ public class SwerveModule {
         }
 
         driveMotor.burnFlash();
-        angleMotor.burnFlash();
+        steerMotor.burnFlash();
     }
 
-    /*
-     * Sets Speed
+    /**
+     * Resets the steer encoder position to the absolute position of the CanCoder.
+     */
+    public void resetToAbsolute() {
+        integratedSteerEncoder.setPosition(getCanCoder().getRadians());
+    }
+
+    /**
+     * Sets the desired state of the SwerveModule.
      *
-     * @param desiredState
-     * @param isOpenLoop Op
+     * @param desiredState The desired state of the SwerveModule.
+     * @param isOpenLoop   A boolean indicating whether the control is open loop or not.
+     */
+    public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop) {
+        // Optimize the desired angle to rotate less than 90 degrees
+        desiredState = SwerveModuleState.optimize(desiredState, getAngle());
+
+        // Send the desired state to the motors
+        setAngle(desiredState.angle);
+        setSpeed(desiredState, isOpenLoop);
+
+        // Publish the desired state to the network table
+        pubDesiredAngle.accept(desiredState.angle.getDegrees());
+        pubDesiredSpeed.accept(desiredState.speedMetersPerSecond);
+        pubSpeedError.accept(desiredState.speedMetersPerSecond - getDriveVelocity());
+        pubAngleError.accept(desiredState.angle.getDegrees() - getAngle().getDegrees());
+    }
+
+    /**
+     * Sets the feedforward value for the swerve module.
+     *
+     * @param newFeedforward the new feedforward value to be set
+     */
+    public void setFeedforward(SimpleMotorFeedforward newFeedforward) {
+        feedforward = newFeedforward;
+    }
+
+    /**
+     * Sets the speed of the swerve module based on the desired state.
+     *
+     * @param desiredState The desired state of the swerve module.
+     * @param isOpenLoop   A boolean indicating whether the control is open loop or closed loop.
      */
     private void setSpeed(SwerveModuleState desiredState, boolean isOpenLoop) {
         double speed =
                 desiredState.speedMetersPerSecond * desiredState.angle.minus(getAngle()).getCos();
 
         if (isOpenLoop) {
-            // original implementation
-            // double percentOutput = desiredState.speedMetersPerSecond / Config.Swerve.maxSpeed;
-            double percentOutput = speed / Config.Swerve.maxSpeed;
+            double percentOutput = speed / SwerveConfig.maxSpeed;
             driveMotor.set(percentOutput);
         } else {
             errSpark(
@@ -278,88 +244,115 @@ public class SwerveModule {
     }
 
     /**
-     * Sets Angle
+     * Sets the angle of the swerve module.
      *
-     * @param desiredState
+     * @param angle the desired angle of the swerve module
      */
-    private void setAngle(SwerveModuleState desiredState, boolean isDisableAntiJitter) {
-        // Prevent rotating module if speed is less then 1%. Prevents jittering.
-        Rotation2d angle;
-        if (isDisableAntiJitter) {
-            angle = desiredState.angle;
-
-            // Anti jitter check
-        } else if (Math.abs(desiredState.speedMetersPerSecond) <= (Config.Swerve.maxSpeed * 0.01)) {
-            angle = lastAngle;
-
-        } else {
-            angle = desiredState.angle;
-        }
-
+    private void setAngle(Rotation2d angle) {
         errSpark(
-                "Angle set reference",
-                angleController.setReference(
+                "Steer set reference",
+                steerController.setReference(
                         angle.getRadians(), CANSparkBase.ControlType.kPosition));
-        lastAngle = angle;
     }
 
     /**
-     * Returns Angle
+     * Returns the angle of the swerve module.
      *
-     * @return Angle
+     * @return the angle of the swerve module
      */
     private Rotation2d getAngle() {
-        return (new Rotation2d(integratedAngleEncoder.getPosition()));
+        return new Rotation2d(integratedSteerEncoder.getPosition());
     }
 
-    public Rotation2d getCanCoder() {
-        return Rotation2d.fromDegrees(angleEncoder.getAbsolutePosition());
+    /**
+     * Returns the velocity of the drive wheel.
+     *
+     * @return the velocity in meters per second
+     */
+    private double getDriveVelocity() {
+        return driveEncoder.getVelocity();
     }
 
-    public SwerveModuleState getState() {
-        return new SwerveModuleState(driveEncoder.getVelocity(), getAngle());
+    /**
+     * Returns the current position of the drive encoder.
+     *
+     * @return the drive position in meters
+     */
+    private double getDrivePosition() {
+        return driveEncoder.getPosition();
     }
 
-    public SwerveModulePosition getPosition() {
-        return new SwerveModulePosition(driveEncoder.getPosition(), getAngle());
+    /**
+     * Returns the rotation in degrees calculated from the CanCoder position
+     * adjusted by the tunable steer offset.
+     *
+     * @return the rotation from the cancoder
+     */
+    private Rotation2d getCanCoder() {
+        return Rotation2d.fromDegrees(
+                steerCancoder.getAbsolutePosition() - tunableSteerOffset.get());
     }
 
+    /**
+     * Returns the velocity of the steering encoder.
+     *
+     * @return the velocity in radians per second
+     */
     public double getSteeringVelocity() {
-        return integratedAngleEncoder.getVelocity();
+        return integratedSteerEncoder.getVelocity();
     }
 
-    public void setFeedforward(SimpleMotorFeedforward newFeedforward) {
-        feedforward = newFeedforward;
+    /**
+     * Gets the current state of the swerve module.
+     *
+     * @return The SwerveModuleState object representing the current state.
+     */
+    public SwerveModuleState getState() {
+        return new SwerveModuleState(getDriveVelocity(), getAngle());
     }
 
+    /**
+     * Returns the position of the swerve module.
+     *
+     * @return the position of the swerve module
+     */
+    public SwerveModulePosition getPosition() {
+        return new SwerveModulePosition(getDrivePosition(), getAngle());
+    }
+
+    /**
+     * Updates the state of the SwerveModule periodically.
+     * This method is called repeatedly to update the measured speed, angle, and Cancoder angle of the SwerveModule.
+     */
     public void periodic() {
-        // update network tables
-        currentSpeedEntry.accept(driveEncoder.getVelocity());
-        currentAngleEntry.accept(getAngle().getRadians());
-
-        canCoderAngleEntry.accept(getCanCoder().getDegrees());
-
-        if (Config.swerveTuning) {
-            angleOffset = Rotation2d.fromDegrees(entryAngleOffset.get());
-        }
+        pubMeasuredSpeed.accept(getDriveVelocity());
+        pubMeasuredAngle.accept(getAngle().getDegrees());
+        pubCancoderAngle.accept(getCanCoder().getDegrees());
     }
 
+    /**
+     * Checks if the swerve module is synchronized between the NEO encoder and cancoder.
+     *
+     * @return true if the module is synchronized, false otherwise
+     */
     public boolean isModuleSynced() {
         // Calculate the angle error between the NEO encoder and cancoder
-        double angleError =
-                getAngle().getDegrees() - (getCanCoder().getDegrees() - angleOffset.getDegrees());
+        double angleError = getAngle().getDegrees() - getCanCoder().getDegrees();
 
         // Wrap the angle to (-180, 180], get the absolute value, then check if the error is less
         // than the tolerance
-        if (Math.abs(MathUtil.inputModulus(angleError, -180, 180)) < Config.Swerve.synchTolerance) {
+        if (Math.abs(MathUtil.inputModulus(angleError, -180, 180)) < SwerveConfig.synchTolerance) {
             return true;
         } else {
             return false;
         }
     }
 
+    /**
+     * Stops the drive and steer motors of the swerve module.
+     */
     public void stopMotors() {
         driveMotor.stopMotor();
-        angleMotor.stopMotor();
+        steerMotor.stopMotor();
     }
 }

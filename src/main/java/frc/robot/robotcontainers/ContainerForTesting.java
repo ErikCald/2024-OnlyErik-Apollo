@@ -16,7 +16,7 @@ import frc.lib.lib2706.TunableDouble;
 import frc.robot.Config;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.PhotonConfig;
-import frc.robot.Config.Swerve.TeleopSpeeds;
+import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.Robot;
 import frc.robot.commands.BlingCommand;
 import frc.robot.commands.BlingCommand.BlingColour;

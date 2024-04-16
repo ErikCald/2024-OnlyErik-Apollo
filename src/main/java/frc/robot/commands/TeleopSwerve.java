@@ -8,8 +8,8 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
-import frc.robot.Config;
-import frc.robot.Config.Swerve.TeleopSpeeds;
+import frc.robot.Config.GeneralConfig;
+import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 public class TeleopSwerve extends Command {
@@ -77,14 +77,15 @@ public class TeleopSwerve extends Command {
     protected double calculateTranslationVal() {
         translationVal =
                 MathUtil.applyDeadband(
-                                -driver.getRawAxis(translationAxis), Config.Swerve.stickDeadband)
+                                -driver.getRawAxis(translationAxis), GeneralConfig.joystickDeadband)
                         * speed.translationalSpeed;
         return translationLimiter.calculate(translationVal);
     }
 
     protected double calculateStrafeVal() {
         strafeVal =
-                MathUtil.applyDeadband(-driver.getRawAxis(strafeAxis), Config.Swerve.stickDeadband)
+                MathUtil.applyDeadband(
+                                -driver.getRawAxis(strafeAxis), GeneralConfig.joystickDeadband)
                         * speed.translationalSpeed;
         return strafeLimiter.calculate(strafeVal);
     }
@@ -92,7 +93,7 @@ public class TeleopSwerve extends Command {
     protected double calculateRotationVal() {
         rotationVal =
                 MathUtil.applyDeadband(
-                                -driver.getRawAxis(rotationAxis), Config.Swerve.stickDeadband)
+                                -driver.getRawAxis(rotationAxis), GeneralConfig.joystickDeadband)
                         * speed.angularSpeed;
         return rotationLimiter.calculate(rotationVal);
     }

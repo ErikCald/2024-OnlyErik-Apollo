@@ -115,7 +115,7 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         toggleOffOn()
-        googleJavaFormat().aosp().reflowLongStrings().formatJavadoc(false).reorderImports(true).groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat().aosp().reflowLongStrings().formatJavadoc(false).reorderImports(true)
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

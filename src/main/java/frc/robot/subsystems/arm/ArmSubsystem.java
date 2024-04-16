@@ -27,6 +27,7 @@ import frc.lib.lib2706.SubsystemChecker;
 import frc.lib.lib2706.SubsystemChecker.SubsystemType;
 import frc.robot.Config;
 import frc.robot.Config.ArmConfig;
+import frc.robot.Config.CANID;
 import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
 public class ArmSubsystem extends SubsystemBase {
@@ -80,7 +81,7 @@ public class ArmSubsystem extends SubsystemBase {
                         Config.ArmConfig.ARM_SPARK_CAN_ID,
                         motorType); // creates SparkMax motor controller
         configureSpark("Arm restore factory defaults", () -> (m_arm.restoreFactoryDefaults()));
-        configureSpark("arm set CANTimeout", () -> m_arm.setCANTimeout(Config.CANTIMEOUT_MS));
+        configureSpark("arm set CANTimeout", () -> m_arm.setCANTimeout(CANID.CANTIMEOUT_MS));
         configureSpark(
                 "Arm set current limits",
                 () -> m_arm.setSmartCurrentLimit(Config.ArmConfig.CURRENT_LIMIT));

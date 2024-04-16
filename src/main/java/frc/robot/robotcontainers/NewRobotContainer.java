@@ -20,7 +20,7 @@ import frc.robot.Config.ArmSetPoints;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.PhotonConfig.PhotonPositions;
-import frc.robot.Config.Swerve.TeleopSpeeds;
+import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.Robot;
 import frc.robot.commands.BlingCommand;
 import frc.robot.commands.BlingCommand.BlingColour;
