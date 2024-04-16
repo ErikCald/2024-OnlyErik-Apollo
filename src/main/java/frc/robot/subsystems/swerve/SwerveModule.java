@@ -4,7 +4,6 @@ import static frc.lib.lib2706.ErrorCheck.configureSpark;
 import static frc.lib.lib2706.ErrorCheck.errSpark;
 import static frc.lib.lib2706.NTUtil.createDoublePublisherFast;
 
-import com.ctre.phoenix.sensors.CANCoder;
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkLowLevel.MotorType;
@@ -22,13 +21,11 @@ import edu.wpi.first.networktables.NetworkTable;
 
 import frc.lib.lib2706.TunableDouble;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
-import frc.lib.lib3512.util.CANCoderUtil;
-import frc.lib.lib3512.util.CANCoderUtil.CCUsage;
 import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;
+import frc.lib.libYAGSL.SimplifiedCANCoder;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
-import frc.robot.Robot;
 import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
 public class SwerveModule {
@@ -36,7 +33,7 @@ public class SwerveModule {
 
     private RelativeEncoder driveEncoder;
     private RelativeEncoder integratedSteerEncoder;
-    private CANCoder steerCancoder;
+    private SimplifiedCANCoder steerCancoder;
 
     private SparkPIDController driveController;
     private SparkPIDController steerController;
@@ -52,10 +49,11 @@ public class SwerveModule {
 
     private TunableDouble tunableSteerOffset;
 
-    public SwerveModule(SwerveModuleConstants moduleConstants, String ModuleName) {
+    public SwerveModule(SwerveModuleConstants moduleConstants, String moduleName) {
         /* Steer Encoder Config */
-        steerCancoder = new CANCoder(moduleConstants.cancoderCanID);
-        configSteerCancoder();
+        steerCancoder =
+                new SimplifiedCANCoder(moduleConstants.cancoderCanID, moduleName + " CANCoder");
+        configSteerCancoder(moduleConstants.steerOffset);
 
         /* Steer Motor Config */
         steerMotor = new CANSparkMax(moduleConstants.steerCanID, MotorType.kBrushless);
@@ -70,7 +68,7 @@ public class SwerveModule {
         configDriveMotor();
 
         /* Networktable Setup */
-        moduleTable = NTConfig.swerveTable.getSubTable("SwerveModule" + ModuleName);
+        moduleTable = NTConfig.swerveTable.getSubTable("SwerveModule" + moduleName);
 
         pubMeasuredSpeed = createDoublePublisherFast(moduleTable, "Measured Speed (mps)");
         pubDesiredSpeed = createDoublePublisherFast(moduleTable, "Desired Speed (mps)");
@@ -101,10 +99,10 @@ public class SwerveModule {
     /**
      * Configures the steer CANCoder
      */
-    private void configSteerCancoder() {
-        steerCancoder.configFactoryDefault();
-        CANCoderUtil.setCANCoderBusUsage(steerCancoder, CCUsage.kMinimal);
-        steerCancoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);
+    private void configSteerCancoder(Rotation2d steerOffset) {
+        steerCancoder.factoryDefault();
+        steerCancoder.configure(SwerveConfig.cancoderInvert, SwerveConfig.cancoderUpdatePeriod);
+        steerCancoder.setAbsoluteCancoderOffset(tunableSteerOffset.get());
     }
 
     /**
@@ -328,6 +326,11 @@ public class SwerveModule {
         pubMeasuredSpeed.accept(getDriveVelocity());
         pubMeasuredAngle.accept(getAngle().getDegrees());
         pubCancoderAngle.accept(getCanCoder().getDegrees());
+
+        TunableDouble.ifChanged(
+                hashCode(),
+                () -> steerCancoder.setAbsoluteCancoderOffset(tunableSteerOffset.get()),
+                tunableSteerOffset);
     }
 
     /**

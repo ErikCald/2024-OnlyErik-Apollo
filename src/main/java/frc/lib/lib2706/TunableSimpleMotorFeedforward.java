@@ -31,13 +31,6 @@ public class TunableSimpleMotorFeedforward {
         m_kV = new TunableDouble("kV", ffTable, kV);
         m_kA = new TunableDouble("kA", ffTable, kA);
 
-        TunableDouble.ifChanged(
-                hashCode(),
-                () -> this.setFeedforward(m_kS.get(), m_kV.get(), m_kA.get()),
-                m_kS,
-                m_kV,
-                m_kA);
-
         // Set the initial feedforward to the defaults or to previously set values on networktables
         setFeedforward(m_kS.get(), m_kV.get(), m_kA.get());
     }
@@ -51,5 +44,17 @@ public class TunableSimpleMotorFeedforward {
      */
     private void setFeedforward(double kS, double kV, double kA) {
         m_setFeedforward.accept(new SimpleMotorFeedforward(kS, kV, kA));
+    }
+
+    /**
+     * Updates the feedforward values based on the current tunable doubles.
+     */
+    public void updateFeedforward() {
+        TunableDouble.ifChanged(
+                hashCode(),
+                () -> this.setFeedforward(m_kS.get(), m_kV.get(), m_kA.get()),
+                m_kS,
+                m_kV,
+                m_kA);
     }
 }

@@ -159,6 +159,9 @@ public final class Config {
     public static final class GeneralConfig {
         public static final boolean enableTunableData = false;
         public static final double joystickDeadband = 0.1;
+
+        public static final int revMaxRetries = 5;
+        public static final int ctreMaxRetries = 5;
     }
 
     public static final boolean disableStateBasedProgramming =
@@ -388,7 +391,8 @@ public final class Config {
         public static final boolean steerInvert = false;
 
         /* Steer Encoder Invert */
-        public static final boolean canCoderInvert = false;
+        public static final boolean cancoderInvert = false;
+        public static final double cancoderUpdatePeriod = 0.04;
 
         /* Module Specific Constants */
         /* Front Left Module - Module 0 Changed*/
@@ -541,6 +545,24 @@ public final class Config {
         }
     }
 
+    public static final boolean tuningMode = true;
+
+    public static final class ShooterConstants {
+        public static final byte MOTOR_ID = (byte) CANID.SHOOTER.val();
+        public static final double kP = 0.0002,
+                kI = 0.0,
+                kD = 0.0,
+                kFF = 0.0003,
+                kP1 = 0.00027,
+                kI1 = 0.0,
+                kD1 = 0.00015,
+                kFF1 = 0.00027,
+                kMaxOutput = 1.0,
+                kMinOutput = -1.0,
+                maxRPM = 5700.0,
+                subwooferRPM = 2750;
+    }
+
     /**
      * Differential Drive Constants
      */
@@ -593,24 +615,6 @@ public final class Config {
     public static final int CAN_TIMEOUT_LONG = 100;
     public static Double DRIVER_JOYSTICK_DEADBAND = 0.15;
 
-    public static final boolean tuningMode = true;
-
-    public static final class ShooterConstants {
-        public static final byte MOTOR_ID = (byte) CANID.SHOOTER.val();
-        public static final double kP = 0.0002,
-                kI = 0.0,
-                kD = 0.0,
-                kFF = 0.0003,
-                kP1 = 0.00027,
-                kI1 = 0.0,
-                kD1 = 0.00015,
-                kFF1 = 0.00027,
-                kMaxOutput = 1.0,
-                kMinOutput = -1.0,
-                maxRPM = 5700.0,
-                subwooferRPM = 2750;
-    }
-
     public static final class NTConfig {
         public static NetworkTable
                 shooterTable = NetworkTableInstance.getDefault().getTable("Shooter"),
@@ -618,5 +622,8 @@ public final class Config {
                 swerveTable = NetworkTableInstance.getDefault().getTable("Swerve"),
                 climberTable = NetworkTableInstance.getDefault().getTable("Climber"),
                 intakeTable = NetworkTableInstance.getDefault().getTable("Intake");
+
+        public static double SLOW_PERIODIC_SECONDS = 250;
+        public static double FAST_PERIODIC_SECONDS = 20;
     }
 }

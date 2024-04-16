@@ -7,8 +7,10 @@ package frc.lib.lib2706;
 import edu.wpi.first.networktables.DoubleEntry;
 import edu.wpi.first.networktables.DoubleTopic;
 import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.PubSubOption;
 
 import frc.robot.Config;
+import frc.robot.Config.NTConfig;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,7 +24,7 @@ import java.util.function.DoubleSupplier;
  */
 public class TunableDouble implements DoubleSupplier {
     private static final boolean IN_TUNING_MODE = Config.tuningMode;
-
+    private static final double ENTRY_PERIOD = NTConfig.SLOW_PERIODIC_SECONDS;
     private final DoubleEntry entry;
     private double defaultValue;
     private Map<Integer, Double> lastHasChangedValues = new HashMap<>();
@@ -35,7 +37,9 @@ public class TunableDouble implements DoubleSupplier {
      * @param defaultValue Default value
      */
     public TunableDouble(String topicName, NetworkTable table, double defaultValue) {
-        entry = table.getDoubleTopic(topicName).getEntry(defaultValue);
+        entry =
+                table.getDoubleTopic(topicName)
+                        .getEntry(defaultValue, PubSubOption.periodic(ENTRY_PERIOD));
         initDefault(defaultValue);
     }
 
@@ -81,7 +85,7 @@ public class TunableDouble implements DoubleSupplier {
      *     otherwise.
      */
     public boolean hasChanged(int id) {
-        if (!Config.tuningMode) return false;
+        if (!IN_TUNING_MODE) return false;
         double currentValue = get();
         Double lastValue = lastHasChangedValues.get(id);
         if (lastValue == null || currentValue != lastValue) {

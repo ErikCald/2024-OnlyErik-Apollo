@@ -8,10 +8,15 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.PubSubOption;
 
+import frc.robot.Config.NTConfig;
+
 /**
  * Utility class for NetworkTables.
  */
 public class NTUtil {
+    private static final double SLOW_PERIOD = NTConfig.SLOW_PERIODIC_SECONDS;
+    private static final double FAST_PERIOD = NTConfig.FAST_PERIODIC_SECONDS;
+
     /** Utility class, so constructor is private. */
     private NTUtil() {
         throw new UnsupportedOperationException("This is a utility class!");
@@ -26,7 +31,7 @@ public class NTUtil {
      */
     public static DoublePublisher createDoublePublisherFast(
             NetworkTable moduleTable, String topicName) {
-        return moduleTable.getDoubleTopic(topicName).publish(PubSubOption.periodic(0.02)); // 20 ms
+        return moduleTable.getDoubleTopic(topicName).publish(PubSubOption.periodic(FAST_PERIOD));
     }
 
     /**
@@ -38,6 +43,6 @@ public class NTUtil {
      */
     public static DoublePublisher createDoublePublisherSlow(
             NetworkTable moduleTable, String topicName) {
-        return moduleTable.getDoubleTopic(topicName).publish(PubSubOption.periodic(0.25)); // 250 ms
+        return moduleTable.getDoubleTopic(topicName).publish(PubSubOption.periodic(SLOW_PERIOD));
     }
 }

@@ -12,7 +12,6 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
-import frc.lib.lib3512.config.CTREConfigs;
 import frc.robot.Config.CANID;
 import frc.robot.robotcontainers.BeetleContainer;
 import frc.robot.robotcontainers.ClutchContainer;
@@ -33,7 +32,6 @@ import org.littletonrobotics.urcl.URCL;
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private RobotContainer m_robotContainer;
-    public static CTREConfigs ctreConfigs = new CTREConfigs();
 
     /**
      * This function is run when the robot is first started up and should be used for any

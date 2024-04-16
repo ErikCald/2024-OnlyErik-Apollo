@@ -418,6 +418,9 @@ public class SwerveSubsystem extends SubsystemBase {
 
         poseBuffer.addPoseToBuffer(getPose());
 
+        // Check if the feedforward has been updated on NT
+        tunableSimpleFF.updateFeedforward();
+
         pubCurrentAngle.accept(getPose().getRotation().getDegrees());
         pubCurrentPositionX.accept(getPose().getX());
         pubCurrentPositionY.accept(getPose().getY());

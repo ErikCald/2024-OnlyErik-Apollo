@@ -1,15 +1,17 @@
 package frc.lib.lib2706;
 
-import com.ctre.phoenix.ErrorCode;
+import com.ctre.phoenix6.StatusCode;
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.REVLibError;
 
 import edu.wpi.first.wpilibj.DriverStation;
 
+import frc.robot.Config.GeneralConfig;
+
 import java.util.function.Supplier;
 
 public class ErrorCheck {
-    private static final int MAXIMUM_RETRIES = 5;
+    private static final int MAXIMUM_RETRIES = GeneralConfig.revMaxRetries;
     private static final boolean PRINT_STACK_TRACE = false;
     private static final boolean PRINT_STACK_TRACE_CONFIGURE = true;
 
@@ -39,8 +41,8 @@ public class ErrorCheck {
      * @param error The error to check
      * @return True for no error, false means there is an error. Boolean can be ignored if not needed.
      */
-    public static boolean errCTRE(String message, ErrorCode error) {
-        if (error == ErrorCode.OK) {
+    public static boolean errCTRE(String message, StatusCode error) {
+        if (error == StatusCode.OK) {
             return true;
         }
 
