@@ -4,14 +4,9 @@
 
 package frc.lib.lib2706;
 
-// Copyright (c) 2024 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
-
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.DoubleEntry;
+import edu.wpi.first.networktables.DoubleTopic;
+import edu.wpi.first.networktables.NetworkTable;
 
 import frc.robot.Config;
 
@@ -22,34 +17,36 @@ import java.util.function.Consumer;
 import java.util.function.DoubleSupplier;
 
 /**
- * Class for a tunable number. Gets value from dashboard in tuning mode, returns default if not or
+ * Class for a tunable double. Gets value from dashboard in tuning mode, returns default if not or
  * value not in dashboard.
  */
-public class TunableNumber implements DoubleSupplier {
-    private static final String tableKey = "TunableNumbers";
+public class TunableDouble implements DoubleSupplier {
+    private static final boolean IN_TUNING_MODE = Config.tuningMode;
 
-    private final String key;
-    private boolean hasDefault = false;
+    private final DoubleEntry entry;
     private double defaultValue;
     private Map<Integer, Double> lastHasChangedValues = new HashMap<>();
 
     /**
-     * Create a new LoggedTunableNumber
+     * Create a new LoggedTunableDouble with the default value
      *
-     * @param dashboardKey Key on dashboard
+     * @param topicName Name of the topic
+     * @param table NetworkTable to use
+     * @param defaultValue Default value
      */
-    public TunableNumber(String dashboardKey) {
-        this.key = tableKey + "/" + dashboardKey;
+    public TunableDouble(String topicName, NetworkTable table, double defaultValue) {
+        entry = table.getDoubleTopic(topicName).getEntry(defaultValue);
+        initDefault(defaultValue);
     }
 
     /**
-     * Create a new LoggedTunableNumber with the default value
+     * Create a new LoggedTunableDouble with the default value
      *
      * @param dashboardKey Key on dashboard
      * @param defaultValue Default value
      */
-    public TunableNumber(String dashboardKey, double defaultValue) {
-        this(dashboardKey);
+    public TunableDouble(DoubleTopic topic, double defaultValue) {
+        entry = topic.getEntry(defaultValue);
         initDefault(defaultValue);
     }
 
@@ -59,13 +56,7 @@ public class TunableNumber implements DoubleSupplier {
      * @param defaultValue The default value
      */
     public void initDefault(double defaultValue) {
-        if (!hasDefault) {
-            hasDefault = true;
-            this.defaultValue = defaultValue;
-            if (Config.tuningMode) {
-                SmartDashboard.putNumber(key, SmartDashboard.getNumber(key, defaultValue));
-            }
-        }
+        entry.setDefault(defaultValue);
     }
 
     /**
@@ -74,10 +65,10 @@ public class TunableNumber implements DoubleSupplier {
      * @return The current value
      */
     public double get() {
-        if (!hasDefault) {
-            return 0.0;
+        if (IN_TUNING_MODE) {
+            return entry.getAsDouble();
         } else {
-            return Config.tuningMode ? SmartDashboard.getNumber(key, defaultValue) : defaultValue;
+            return defaultValue;
         }
     }
 
@@ -102,7 +93,7 @@ public class TunableNumber implements DoubleSupplier {
     }
 
     /**
-     * Runs action if any of the tunableNumbers have changed
+     * Runs action if any of the TuneableDoubles have changed
      *
      * @param id Unique identifier for the caller to avoid conflicts when shared between multiple *
      *     objects. Recommended approach is to pass the result of "hashCode()"
@@ -111,14 +102,14 @@ public class TunableNumber implements DoubleSupplier {
      * @param tunableNumbers All tunable numbers to check
      */
     public static void ifChanged(
-            int id, Consumer<double[]> action, TunableNumber... tunableNumbers) {
+            int id, Consumer<double[]> action, TunableDouble... tunableNumbers) {
         if (Arrays.stream(tunableNumbers).anyMatch(tunableNumber -> tunableNumber.hasChanged(id))) {
-            action.accept(Arrays.stream(tunableNumbers).mapToDouble(TunableNumber::get).toArray());
+            action.accept(Arrays.stream(tunableNumbers).mapToDouble(TunableDouble::get).toArray());
         }
     }
 
     /** Runs action if any of the tunableNumbers have changed */
-    public static void ifChanged(int id, Runnable action, TunableNumber... tunableNumbers) {
+    public static void ifChanged(int id, Runnable action, TunableDouble... tunableNumbers) {
         ifChanged(id, values -> action.run(), tunableNumbers);
     }
 

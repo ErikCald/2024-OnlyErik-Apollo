@@ -11,6 +11,8 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 
@@ -612,5 +614,14 @@ public final class Config {
                 kMinOutput = -1.0,
                 maxRPM = 5700.0,
                 subwooferRPM = 2750;
+    }
+
+    public static final class NTConfig {
+        public static NetworkTable
+                shooterTable = NetworkTableInstance.getDefault().getTable("Shooter"),
+                armTable = NetworkTableInstance.getDefault().getTable("Arm"),
+                swerveTable = NetworkTableInstance.getDefault().getTable("Swerve"),
+                climberTable = NetworkTableInstance.getDefault().getTable("Climber"),
+                intakeTable = NetworkTableInstance.getDefault().getTable("Intake");
     }
 }

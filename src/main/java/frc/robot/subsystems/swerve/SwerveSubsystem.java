@@ -30,8 +30,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.AdvantageUtil;
-import frc.lib.lib2706.PoseBuffer;
 import frc.lib.lib2706.UpdateSimpleFeedforward;
+import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.Swerve;

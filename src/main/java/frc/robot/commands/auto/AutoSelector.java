@@ -4,6 +4,7 @@ import edu.wpi.first.networktables.IntegerEntry;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
+
 import frc.robot.subsystems.misc.AnalogSelectorSubsystem;
 
 public class AutoSelector {

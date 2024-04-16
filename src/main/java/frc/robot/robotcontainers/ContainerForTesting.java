@@ -12,8 +12,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
-import frc.lib.lib2706.TunableNumber;
+import frc.lib.lib2706.TunableDouble;
 import frc.robot.Config;
+import frc.robot.Config.NTConfig;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.Swerve.TeleopSpeeds;
 import frc.robot.Robot;
@@ -59,9 +60,12 @@ public class ContainerForTesting extends RobotContainer {
     /* Default Command */
     private Command m_swerveDefaultCommand;
 
-    private TunableNumber shooterTargetRPM = new TunableNumber("Shooter/Target RPM", 0);
-    private TunableNumber shooterDesiredVoltage = new TunableNumber("Shooter/desired Voltage", 0);
-    private TunableNumber armAngleDeg = new TunableNumber("Arm/ArmTuning/setAngleDeg", 5.0);
+    private TunableDouble shooterTargetRPM =
+            new TunableDouble("Target RPM", NTConfig.shooterTable, 0);
+    private TunableDouble shooterDesiredVoltage =
+            new TunableDouble("desired Voltage", NTConfig.shooterTable, 0);
+    private TunableDouble armAngleDeg =
+            new TunableDouble("ArmTuning/setAngleDeg", NTConfig.armTable, 5.0);
 
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.

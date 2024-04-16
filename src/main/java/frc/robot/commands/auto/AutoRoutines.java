@@ -26,10 +26,10 @@ import frc.robot.commands.PhotonMoveToTarget;
 import frc.robot.commands.SetArm;
 import frc.robot.commands.Shooter_PID_Tuner;
 import frc.robot.subsystems.arm.ArmSubsystem;
-import frc.robot.subsystems.mechanisms.IntakeSubsystem;
-import frc.robot.subsystems.mechanisms.ShooterSubsystem;
 import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes;
+import frc.robot.subsystems.mechanisms.IntakeSubsystem;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
+import frc.robot.subsystems.mechanisms.ShooterSubsystem;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
 import frc.robot.subsystems.vision.PhotonSubsystem;
 

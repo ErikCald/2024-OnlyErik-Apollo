@@ -1,5 +1,10 @@
 package frc.robot.subsystems.mechanisms;
 
+import static frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes.SHOOT_SPEAKER;
+import static frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes.STOP_SHOOTER;
+import static frc.robot.subsystems.mechanisms.ShooterStateMachine.States.AMP_LAUNCH_READY;
+import static frc.robot.subsystems.mechanisms.ShooterStateMachine.States.SPEAKER_LAUNCH_READY;
+
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
@@ -9,8 +14,6 @@ import com.revrobotics.SparkPIDController;
 
 import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -18,14 +21,12 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.ErrorCheck;
-import frc.lib.lib2706.TunableNumber;
+import frc.lib.lib2706.TunableDouble;
 import frc.robot.Config;
+import frc.robot.Config.NTConfig;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.States;
 import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
-
-import static frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes.*;
-import static frc.robot.subsystems.mechanisms.ShooterStateMachine.States.*;
 
 import java.util.function.BooleanSupplier;
 
@@ -36,17 +37,25 @@ public class ShooterSubsystem extends SubsystemBase {
     private boolean closedLoopControl = false;
     private boolean stateFulControl = false;
 
-    private TunableNumber kP = new TunableNumber("Shooter/PID0/kP", Config.ShooterConstants.kP);
-    private TunableNumber kI = new TunableNumber("Shooter/PID0/kI", Config.ShooterConstants.kI);
-    private TunableNumber kD = new TunableNumber("Shooter/PID0/kD", Config.ShooterConstants.kD);
-    private TunableNumber kFF = new TunableNumber("Shooter/PID0/kFF", Config.ShooterConstants.kFF);
+    private TunableDouble kP =
+            new TunableDouble("PID0/kP", NTConfig.shooterTable, Config.ShooterConstants.kP);
+    private TunableDouble kI =
+            new TunableDouble("PID0/kI", NTConfig.shooterTable, Config.ShooterConstants.kI);
+    private TunableDouble kD =
+            new TunableDouble("PID0/kD", NTConfig.shooterTable, Config.ShooterConstants.kD);
+    private TunableDouble kFF =
+            new TunableDouble("PID0/kFF", NTConfig.shooterTable, Config.ShooterConstants.kFF);
 
-    private TunableNumber kP1 = new TunableNumber("Shooter/PID1/kP", Config.ShooterConstants.kP1);
-    private TunableNumber kI1 = new TunableNumber("Shooter/PID1/kI", Config.ShooterConstants.kI1);
-    private TunableNumber kD1 = new TunableNumber("Shooter/PID1/kD", Config.ShooterConstants.kD1);
-    private TunableNumber kFF1 =
-            new TunableNumber("Shooter/PID1/kFF", Config.ShooterConstants.kFF1);
-    private TunableNumber shooterTreshHold = new TunableNumber("Shooter/tresh hold", 100);
+    private TunableDouble kP1 =
+            new TunableDouble("PID1/kP", NTConfig.shooterTable, Config.ShooterConstants.kP1);
+    private TunableDouble kI1 =
+            new TunableDouble("PID1/kI", NTConfig.shooterTable, Config.ShooterConstants.kI1);
+    private TunableDouble kD1 =
+            new TunableDouble("PID1/kD", NTConfig.shooterTable, Config.ShooterConstants.kD1);
+    private TunableDouble kFF1 =
+            new TunableDouble("PID1/kFF", NTConfig.shooterTable, Config.ShooterConstants.kFF1);
+    private TunableDouble shooterTreshHold =
+            new TunableDouble("tresh hold", NTConfig.shooterTable, 100);
 
     private DoublePublisher velocityPub;
     private StringPublisher statePub;
@@ -87,17 +96,18 @@ public class ShooterSubsystem extends SubsystemBase {
 
         ErrorCheck.sparkBurnFlash("Shooter", m_motor);
 
-        NetworkTable shooterTable = NetworkTableInstance.getDefault().getTable("Shooter");
         velocityPub =
-                shooterTable
+                NTConfig.shooterTable
                         .getDoubleTopic("Shooter Velocity RPM")
                         .publish(PubSubOption.periodic(0.02));
         shooterReadyPub =
-                shooterTable
+                NTConfig.shooterTable
                         .getBooleanTopic("Shooter is Ready to shoot")
                         .publish(PubSubOption.periodic(0.02));
         statePub =
-                shooterTable.getStringTopic("Shooter state").publish(PubSubOption.periodic(0.02));
+                NTConfig.shooterTable
+                        .getStringTopic("Shooter state")
+                        .publish(PubSubOption.periodic(0.02));
 
         ErrorTrackingSubsystem.getInstance().register(m_motor);
     }
@@ -209,13 +219,13 @@ public class ShooterSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        TunableNumber.ifChanged(
+        TunableDouble.ifChanged(
                 hashCode(), () -> setPIDGains(kP.get(), kI.get(), kD.get(), 0), kP, kI, kD);
-        TunableNumber.ifChanged(hashCode(), () -> setFFGains(kFF.get(), 0), kFF);
+        TunableDouble.ifChanged(hashCode(), () -> setFFGains(kFF.get(), 0), kFF);
 
-        TunableNumber.ifChanged(
+        TunableDouble.ifChanged(
                 hashCode(), () -> setPIDGains(kP1.get(), kI1.get(), kD1.get(), 1), kP1, kI1, kD1);
-        TunableNumber.ifChanged(hashCode(), () -> setFFGains(kFF1.get(), 1), kFF1);
+        TunableDouble.ifChanged(hashCode(), () -> setFFGains(kFF1.get(), 1), kFF1);
 
         // Check if this method would work like this
         if (stateFulControl == true) {
