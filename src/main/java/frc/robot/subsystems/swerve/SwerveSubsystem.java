@@ -1,6 +1,6 @@
 package frc.robot.subsystems.swerve;
 
-import com.ctre.phoenix.sensors.PigeonIMU;
+import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
@@ -30,20 +30,26 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.AdvantageUtil;
+import frc.lib.lib2706.GeomUtil;
 import frc.lib.lib2706.TunableSimpleMotorFeedforward;
 import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
+import frc.robot.Robot;
 import frc.robot.Config.CANID;
+import frc.robot.Config.GeneralConfig;
 import frc.robot.Config.PhotonConfig;
+import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
 
+import java.sql.Driver;
 import java.util.Optional;
 
 public class SwerveSubsystem extends SubsystemBase {
-    private final PigeonIMU gyro;
+    private final WPI_PigeonIMU gyro;
+    private Rotation2d simHeading = new Rotation2d();
 
     private SwerveDriveOdometry swerveOdometry;
-    private SwerveModule[] mSwerveMods;
+    private SwerveModuleInterface[] mSwerveMods;
     String tableName = "SwerveChassis";
     private NetworkTable swerveTable = NetworkTableInstance.getDefault().getTable(tableName);
     private DoublePublisher pubCurrentAngle =
@@ -61,6 +67,8 @@ public class SwerveSubsystem extends SubsystemBase {
     private TunableSimpleMotorFeedforward tunableSimpleFF;
     private DoublePublisher pubGyroRate =
             swerveTable.getDoubleTopic("Gyro Rate (degps)").publish(PubSubOption.periodic(0.02));
+    private DoubleArrayPublisher pubDesiredStates = swerveTable.getDoubleArrayTopic("DesiredStates").publish(PubSubOption.periodic(0.02));
+    private DoubleArrayPublisher pubMeasuredStates = swerveTable.getDoubleArrayTopic("MeasuredStates").publish(PubSubOption.periodic(0.02));
 
     private NetworkTable visionPidTable = swerveTable.getSubTable("VisionPid");
     private DoublePublisher pubMeasuredSpeedX =
@@ -114,16 +122,38 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     private SwerveSubsystem() {
-        gyro = new PigeonIMU(CANID.PIGEON.val());
+        gyro = new WPI_PigeonIMU(CANID.PIGEON.val());
         gyro.configFactoryDefault();
 
-        mSwerveMods =
-                new SwerveModule[] {
-                    new SwerveModule(Config.SwerveConfig.Mod0.constants, "FL"),
-                    new SwerveModule(Config.SwerveConfig.Mod1.constants, "FR"),
-                    new SwerveModule(Config.SwerveConfig.Mod2.constants, "BL"),
-                    new SwerveModule(Config.SwerveConfig.Mod3.constants, "BR")
-                };
+        switch (RobotID.getActiveID()) {
+            default:
+            case APOLLO:
+                mSwerveMods =
+                        new SwerveModuleInterface[] {
+                            new SwerveModuleSparkMaxCancoder(
+                                    Config.SwerveConfig.Mod0.constants, "FL"),
+                            new SwerveModuleSparkMaxCancoder(
+                                    Config.SwerveConfig.Mod1.constants, "FR"),
+                            new SwerveModuleSparkMaxCancoder(
+                                    Config.SwerveConfig.Mod2.constants, "BL"),
+                            new SwerveModuleSparkMaxCancoder(
+                                    Config.SwerveConfig.Mod3.constants, "BR")
+                        };
+                break;
+
+            case SIMULATION:
+                mSwerveMods =
+                        new SwerveModuleInterface[] {
+                            new SwerveModuleSim(Config.SwerveConfig.Mod0.constants, "FL"),
+                            new SwerveModuleSim(Config.SwerveConfig.Mod1.constants, "FR"),
+                            new SwerveModuleSim(Config.SwerveConfig.Mod2.constants, "BL"),
+                            new SwerveModuleSim(Config.SwerveConfig.Mod3.constants, "BR")
+                        };
+                break;
+
+            case BEETLE:
+                throw new UnsupportedOperationException("Beetle does not support swerve.");
+        }
 
         swerveOdometry =
                 new SwerveDriveOdometry(
@@ -196,18 +226,27 @@ public class SwerveSubsystem extends SubsystemBase {
             boolean fieldRelative,
             boolean isOpenLoop,
             boolean flipForAlliance) {
-        Rotation2d heading = flipForAlliance ? rotateForAlliance(getHeading()) : getHeading();
+        Rotation2d heading =
+                flipForAlliance ? GeomUtil.rotateForAlliance(getHeading()) : getHeading();
+
+        if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
+            System.out.println("Speeds: " + Math.toDegrees(speeds.omegaRadiansPerSecond) + ", Angle: " + Math.toDegrees(speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+            gyro.setFusedHeading(gyro.getFusedHeading() + 
+                    Math.toDegrees(speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+
+            simHeading = simHeading.plus(new Rotation2d(speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+        }
 
         SwerveModuleState[] swerveModuleStates =
                 Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(
                         // ChassisSpeeds.discretize(
-                        fieldRelative
-                                ? ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading)
-                                : speeds
-                        // , 0.02)
-                        );
+                                fieldRelative
+                                        ? ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading)
+                                        : speeds);
+                                // 0.02));
         SwerveDriveKinematics.desaturateWheelSpeeds(
                 swerveModuleStates, Config.SwerveConfig.maxSpeed);
+        pubDesiredStates.accept(AdvantageUtil.deconstructSwerveModuleState(swerveModuleStates));
 
         for (int i = 0; i < mSwerveMods.length; i++) {
             mSwerveMods[i].setDesiredState(swerveModuleStates[i], isOpenLoop);
@@ -226,6 +265,7 @@ public class SwerveSubsystem extends SubsystemBase {
     public void setModuleStates(
             SwerveModuleState[] desiredStates, boolean isOpenLoop, boolean isDisableAntiJitter) {
         SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Config.SwerveConfig.maxSpeed);
+        pubDesiredStates.accept(AdvantageUtil.deconstructSwerveModuleState(desiredStates));
 
         for (int i = 0; i < mSwerveMods.length; i++) {
             mSwerveMods[i].setDesiredState(desiredStates[i], isOpenLoop);
@@ -259,18 +299,19 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     public void updateModuleFeedforward(SimpleMotorFeedforward ff) {
-        for (SwerveModule mod : mSwerveMods) {
+        for (SwerveModuleInterface mod : mSwerveMods) {
             mod.setFeedforward(ff);
         }
     }
 
     private Rotation2d getYaw() {
-        return (Config.SwerveConfig.invertGyro)
-                ? Rotation2d.fromDegrees(360 - gyro.getYaw())
-                : Rotation2d.fromDegrees(gyro.getYaw());
+        if (Robot.isSimulation()) {
+            return simHeading;
+        }
+        return gyro.getRotation2d();
     }
 
-    /**
+    /**`
      * Returns a command to set the given angle as the heading.
      * Rotates the angle by 180 degrees if on the red alliance.
      *
@@ -281,7 +322,9 @@ public class SwerveSubsystem extends SubsystemBase {
         return Commands.runOnce(
                 () ->
                         resetOdometry(
-                                new Pose2d(getPose().getTranslation(), rotateForAlliance(angle))));
+                                new Pose2d(
+                                        getPose().getTranslation(),
+                                        GeomUtil.rotateForAlliance(angle))));
     }
 
     public Command setOdometryCommand(Pose2d pose) {
@@ -394,12 +437,15 @@ public class SwerveSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        for (SwerveModule mod : mSwerveMods) {
+        SwerveModulePosition[] positions = getPositions();
+        SwerveModuleState[] states = getStates();
+        pubMeasuredStates.accept(AdvantageUtil.deconstructSwerveModuleState(states));
+
+        for (SwerveModuleInterface mod : mSwerveMods) {
             mod.periodic();
         }
-        SwerveModulePosition[] tempGetPositions = getPositions();
-        SwerveModuleState[] tempGetStates = getStates();
-        swerveOdometry.update(getYaw(), tempGetPositions);
+
+        swerveOdometry.update(getYaw(), positions);
         field.setRobotPose(getPose());
 
         // If the robot isn't moving synchronize the encoders every 100ms (Inspired by democrat's
@@ -463,7 +509,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
     public boolean isChassisMoving(double velToleranceMPS) {
         double sumVelocity = 0;
-        for (SwerveModule mod : mSwerveMods) {
+        for (SwerveModuleInterface mod : mSwerveMods) {
             sumVelocity += Math.abs(mod.getState().speedMetersPerSecond);
         }
 
@@ -484,7 +530,7 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     public boolean isSwerveNotSynched() {
-        for (SwerveModule module : mSwerveMods) {
+        for (SwerveModuleInterface module : mSwerveMods) {
             if (!module.isModuleSynced()) {
                 return (true);
             }
@@ -493,37 +539,14 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     public void synchSwerve() {
-        for (SwerveModule module : mSwerveMods) {
+        for (SwerveModuleInterface module : mSwerveMods) {
             module.resetToAbsolute();
         }
     }
 
     public void stopMotors() {
-        for (SwerveModule mod : mSwerveMods) {
+        for (SwerveModuleInterface mod : mSwerveMods) {
             mod.stopMotors();
-        }
-    }
-
-    /**
-     * Rotates the given angle by 180 if the red alliance or 0 if blue and returns it.
-     * Aka defaults to assuming we are on the blue alliance.
-     *
-     * @param angle to rotate.
-     * @return The angle rotated for the alliance.
-     */
-    public static Rotation2d rotateForAlliance(Rotation2d angle) {
-        var alliance = DriverStation.getAlliance();
-
-        // Default to blue alliance
-        if (alliance.isEmpty()) {
-            DriverStation.reportWarning("Unable to detect alliance color.", false);
-            return angle;
-        }
-
-        if (alliance.get() == DriverStation.Alliance.Blue) {
-            return angle;
-        } else {
-            return angle.rotateBy(new Rotation2d(Math.PI));
         }
     }
 }

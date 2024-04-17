@@ -49,7 +49,7 @@ import frc.robot.subsystems.swerve.SwerveSubsystem;
  * (including subsystems, commands, and button mappings) should be declared
  * here.
  */
-public class NewRobotContainer extends RobotContainer {
+public class ApolloContainer extends RobotContainer {
     /* Controllers */
     private final CommandXboxController driver = new CommandXboxController(0);
     private final CommandXboxController operator = new CommandXboxController(1);
@@ -77,7 +77,7 @@ public class NewRobotContainer extends RobotContainer {
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.
      */
-    public NewRobotContainer() {
+    public ApolloContainer() {
         /*  Setup default commands */
         m_swerveDefaultCommand = new TeleopSwerve(driver);
         s_Swerve.setDefaultCommand(m_swerveDefaultCommand);

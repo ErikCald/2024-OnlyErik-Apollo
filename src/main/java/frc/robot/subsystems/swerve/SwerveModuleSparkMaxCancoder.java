@@ -6,6 +6,7 @@ import static frc.lib.lib2706.NTUtil.createDoublePublisherFast;
 
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkBase.ControlType;
+import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
@@ -28,7 +29,7 @@ import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
 import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
-public class SwerveModule {
+public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
     private CANSparkMax steerMotor, driveMotor;
 
     private RelativeEncoder driveEncoder;
@@ -49,7 +50,15 @@ public class SwerveModule {
 
     private TunableDouble tunableSteerOffset;
 
-    public SwerveModule(SwerveModuleConstants moduleConstants, String moduleName) {
+    /**
+     * Represents a Swerve Module with SparkMax motor controllers and CANCoder for steering feedback.
+     * This class provides methods for configuring and controlling the steer and drive motors,
+     * as well as accessing the measured and desired speed and angle of the module.
+     *
+     * @param moduleConstants The constants specific to this swerve module.
+     * @param moduleName The name of the swerve module.
+     */
+    public SwerveModuleSparkMaxCancoder(SwerveModuleConstants moduleConstants, String moduleName) {
         /* Steer Encoder Config */
         steerCancoder =
                 new SimplifiedCANCoder(moduleConstants.cancoderCanID, moduleName + " CANCoder");
@@ -139,7 +148,7 @@ public class SwerveModule {
                 "Steer set pid wrap", () -> steerController.setPositionPIDWrappingEnabled(true));
         configureSpark(
                 "Steer enable Volatage Compensation",
-                () -> steerMotor.enableVoltageCompensation(SwerveConfig.voltageComp));
+                () -> steerMotor.enableVoltageCompensation(SwerveConfig.steerVoltComp));
     }
 
     /*
@@ -152,8 +161,7 @@ public class SwerveModule {
                 "Drive smart current limit",
                 () -> driveMotor.setSmartCurrentLimit(SwerveConfig.driveContinuousCurrentLimit));
         driveMotor.setInverted(SwerveConfig.driveInvert);
-        configureSpark(
-                "Drive idle mode", () -> driveMotor.setIdleMode(SwerveConfig.driveNeutralMode));
+        configureSpark("Drive idle mode", () -> driveMotor.setIdleMode(SwerveConfig.driveIdleMode));
         configureSpark(
                 "Drive velocity conversion factor",
                 () -> driveEncoder.setVelocityConversionFactor(SwerveConfig.driveConvVelFactor));
@@ -166,7 +174,7 @@ public class SwerveModule {
         configureSpark("Drive set FF", () -> driveController.setFF(SwerveConfig.driveKFF));
         configureSpark(
                 "Drive voltage comp",
-                () -> driveMotor.enableVoltageCompensation(SwerveConfig.voltageComp));
+                () -> driveMotor.enableVoltageCompensation(SwerveConfig.driveVoltComp));
         configureSpark("Drive set position", () -> driveEncoder.setPosition(0.0));
     }
 
@@ -186,6 +194,7 @@ public class SwerveModule {
     /**
      * Resets the steer encoder position to the absolute position of the CanCoder.
      */
+    @Override
     public void resetToAbsolute() {
         integratedSteerEncoder.setPosition(getCanCoder().getRadians());
     }
@@ -196,6 +205,7 @@ public class SwerveModule {
      * @param desiredState The desired state of the SwerveModule.
      * @param isOpenLoop   A boolean indicating whether the control is open loop or not.
      */
+    @Override
     public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop) {
         // Optimize the desired angle to rotate less than 90 degrees
         desiredState = SwerveModuleState.optimize(desiredState, getAngle());
@@ -216,6 +226,7 @@ public class SwerveModule {
      *
      * @param newFeedforward the new feedforward value to be set
      */
+    @Override
     public void setFeedforward(SimpleMotorFeedforward newFeedforward) {
         feedforward = newFeedforward;
     }
@@ -292,19 +303,11 @@ public class SwerveModule {
     }
 
     /**
-     * Returns the velocity of the steering encoder.
-     *
-     * @return the velocity in radians per second
-     */
-    public double getSteeringVelocity() {
-        return integratedSteerEncoder.getVelocity();
-    }
-
-    /**
      * Gets the current state of the swerve module.
      *
      * @return The SwerveModuleState object representing the current state.
      */
+    @Override
     public SwerveModuleState getState() {
         return new SwerveModuleState(getDriveVelocity(), getAngle());
     }
@@ -314,14 +317,26 @@ public class SwerveModule {
      *
      * @return the position of the swerve module
      */
+    @Override
     public SwerveModulePosition getPosition() {
         return new SwerveModulePosition(getDrivePosition(), getAngle());
+    }
+
+    /**
+     * Returns the velocity of the steering encoder.
+     *
+     * @return the velocity in radians per second
+     */
+    @Override
+    public double getSteeringVelocity() {
+        return integratedSteerEncoder.getVelocity();
     }
 
     /**
      * Updates the state of the SwerveModule periodically.
      * This method is called repeatedly to update the measured speed, angle, and Cancoder angle of the SwerveModule.
      */
+    @Override
     public void periodic() {
         pubMeasuredSpeed.accept(getDriveVelocity());
         pubMeasuredAngle.accept(getAngle().getDegrees());
@@ -338,6 +353,7 @@ public class SwerveModule {
      *
      * @return true if the module is synchronized, false otherwise
      */
+    @Override
     public boolean isModuleSynced() {
         // Calculate the angle error between the NEO encoder and cancoder
         double angleError = getAngle().getDegrees() - getCanCoder().getDegrees();
@@ -352,8 +368,20 @@ public class SwerveModule {
     }
 
     /**
+     * Sets the idle mode for the drive and steer motors.
+     *
+     * @param drive The idle mode for the drive motor.
+     * @param steer The idle mode for the steer motor.
+     */
+    public void setIdleMode(IdleMode drive, IdleMode steer) {
+        driveMotor.setIdleMode(drive);
+        steerMotor.setIdleMode(steer);
+    }
+
+    /**
      * Stops the drive and steer motors of the swerve module.
      */
+    @Override
     public void stopMotors() {
         driveMotor.stopMotor();
         steerMotor.stopMotor();

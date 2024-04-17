@@ -16,9 +16,13 @@ public class TeleopSwerve extends Command {
     private SwerveSubsystem s_Swerve;
 
     private CommandXboxController driver;
-    private final int translationAxis = XboxController.Axis.kLeftY.value;
-    private final int strafeAxis = XboxController.Axis.kLeftX.value;
-    private final int rotationAxis = XboxController.Axis.kRightX.value;
+    // private final int translationAxis = XboxController.Axis.kLeftY.value;
+    // private final int strafeAxis = XboxController.Axis.kLeftX.value;
+    // private final int rotationAxis = XboxController.Axis.kRightX.value;
+
+    private final int translationAxis = 1;
+    private final int strafeAxis = 0;
+    private final int rotationAxis = 2;
 
     private static TeleopSpeeds speed = TeleopSpeeds.MAX;
     private static boolean isFieldRelative = true;

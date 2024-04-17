@@ -5,6 +5,7 @@
 package frc.lib.lib2706;
 
 import frc.robot.Config;
+import frc.robot.Config.RobotID;
 
 /** Add your docs here. */
 public class SubsystemChecker {
@@ -13,48 +14,42 @@ public class SubsystemChecker {
      * Name of possible subsystems
      */
     public enum SubsystemType {
+        AnalogSelectorSubsystem,
+        ArmSubsystem,
+        BlingSubsystem,
+        ClimberSubsystem,
         DiffNeoSubsystem,
         DiffTalonSubsystem,
-        SwerveSubsystem,
-        ClimberSubsystem,
-        ShooterSubsystem,
-        RollerIntakeSubsystem,
+        ErrorTrackingSubsystem,
+        GripperSubsystem,
+        IndexerSubsystem,
+        PhotonSubsystem,
         PneumaticIntakeSubsystem,
         PneumaticShooterSubsystem,
-        IndexerSubsystem,
-        ArmSubsystem,
         RelaySubsystem,
+        RollerIntakeSubsystem,
+        ShooterSubsystem,
+        SwerveSubsystem,
         VisionNTSubsystem,
-        BlingSubsystem,
-        GripperSubsystem,
     };
 
     /**
      * Allowed Subsystems for each robot
      */
-    // RobotID: 0, 2023 Competition robot, unnamed
+    // RobotID: 0, 2024 Competition robot, Apollo
     private static SubsystemType[] compBotId0 =
             new SubsystemType[] {
-                SubsystemType.SwerveSubsystem,
+                SubsystemType.SwerveSubsystem, // Chassis
                 SubsystemType.ArmSubsystem,
-                SubsystemType.RelaySubsystem,
-                SubsystemType.VisionNTSubsystem,
-                SubsystemType.GripperSubsystem,
                 SubsystemType.BlingSubsystem,
+                SubsystemType.ErrorTrackingSubsystem,
+                SubsystemType.PhotonSubsystem,
+                SubsystemType.RollerIntakeSubsystem,
+                SubsystemType.ShooterSubsystem,
             };
 
-    // RobotID: 1, 2022 robot, RapidReact, Clutch
-    private static SubsystemType[] clutchId1 =
-            new SubsystemType[] {
-                SubsystemType.DiffTalonSubsystem, // Chassis
-                SubsystemType.RollerIntakeSubsystem,
-                SubsystemType.PneumaticIntakeSubsystem,
-                SubsystemType.PneumaticShooterSubsystem,
-                SubsystemType.IndexerSubsystem,
-                SubsystemType.ShooterSubsystem,
-                SubsystemType.ClimberSubsystem,
-                SubsystemType.BlingSubsystem,
-            };
+    // RobotID: 1, 2024 Simulated robot, Apollo
+    private static SubsystemType[] simBotId1 = compBotId0;
 
     // RobotID: 2, Half-scale talon differential drive robot, Beetle
     private static SubsystemType[] beetleId2 =
@@ -64,41 +59,19 @@ public class SubsystemChecker {
                 SubsystemType.BlingSubsystem,
             };
 
-    // RobotID: 3, 2019 Comp Robot, Deep Space, Mergonaut
+    // RobotID: 3, 2023 Robot, Cresendo, Poseidon
     private static SubsystemType[] mergonautId3 =
             new SubsystemType[] {
-                SubsystemType.DiffTalonSubsystem, // Chassis
-            };
-
-    // RobotID: 4, 2022 Fall Half-scale swerve robot, unnamed
-    private static SubsystemType[] miniSwerveId4 =
-            new SubsystemType[] {
                 SubsystemType.SwerveSubsystem, // Chassis
-                SubsystemType.RelaySubsystem,
-                SubsystemType.VisionNTSubsystem,
-            };
-
-    // RobotID: 5, 2022 Fall Half-scale Neo Differential drive robot, unnamed
-    private static SubsystemType[] neoMiniRobotId5 =
-            new SubsystemType[] {
-                SubsystemType.DiffNeoSubsystem, // Chassis
-            };
-
-    private static SubsystemType[] armBotId6 =
-            new SubsystemType[] {
                 SubsystemType.ArmSubsystem,
+                SubsystemType.GripperSubsystem,
+                SubsystemType.BlingSubsystem,
+                SubsystemType.AnalogSelectorSubsystem,
             };
 
     // Use robotSpecific to know what robot is currently running the code
     private static SubsystemType[] activeRobotAllowedTypes =
-            Config.robotSpecific(
-                    compBotId0,
-                    clutchId1,
-                    beetleId2,
-                    mergonautId3,
-                    miniSwerveId4,
-                    neoMiniRobotId5,
-                    armBotId6);
+            Config.robotSpecific(compBotId0, simBotId1, beetleId2, mergonautId3);
 
     /**
      * Check if the subsystem is allowed for the robot this is deployed onto
@@ -109,9 +82,9 @@ public class SubsystemChecker {
         if (!canSubsystemConstruct(subsystem)) {
             throw new RuntimeException(
                     String.format(
-                            "SUBSYSTEM INITALIZED - NOT ALLOWED ON THIS ROBOT - RobotID: %d,"
+                            "SUBSYSTEM INITALIZED - NOT ALLOWED ON THIS ROBOT - RobotID: %s,"
                                     + " IllegalSubsystem: %s",
-                            Config.getRobotId(), subsystem.toString()));
+                            RobotID.getActiveID().name(), subsystem.toString()));
         }
     }
 

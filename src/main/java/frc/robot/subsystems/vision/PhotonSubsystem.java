@@ -90,6 +90,7 @@ public class PhotonSubsystem extends SubsystemBase {
     private PhotonSubsystem() {
         // name of camera, change if using multiple cameras
         camera1 = new PhotonCamera(PhotonConfig.apriltagCameraName);
+
         // networktable publishers
         NetworkTable photonTable =
                 NetworkTableInstance.getDefault().getTable(PhotonConfig.networkTableName);

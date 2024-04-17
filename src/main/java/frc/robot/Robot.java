@@ -13,15 +13,16 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 import frc.robot.Config.CANID;
+import frc.robot.Config.RobotID;
+import frc.robot.robotcontainers.ApolloContainer;
 import frc.robot.robotcontainers.BeetleContainer;
-import frc.robot.robotcontainers.ClutchContainer;
-import frc.robot.robotcontainers.NewRobotContainer;
 import frc.robot.robotcontainers.PoseidonContainer;
 import frc.robot.robotcontainers.RobotContainer;
 import frc.robot.subsystems.arm.ArmSubsystem;
 import frc.robot.subsystems.vision.PhotonSubsystem;
 
 import org.littletonrobotics.urcl.URCL;
+import org.photonvision.PhotonCamera;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -46,6 +47,9 @@ public class Robot extends TimedRobot {
         // devices.
         URCL.start(CANID.mapCanIdsToNames());
 
+        // Disable PhotonVision version check in simulation
+        PhotonCamera.setVersionCheckEnabled(!Robot.isSimulation());
+
         // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         // autonomous chooser on the dashboard.
         createRobotContainer();
@@ -56,31 +60,29 @@ public class Robot extends TimedRobot {
         // bindings, and put our
         // autonomous chooser on the dashboard.
 
-        switch (Config.getRobotId()) {
-            case 0:
-                // m_robotContainer = new ContainerForTesting(); break; // testing
-                m_robotContainer = new NewRobotContainer();
+        switch (RobotID.getActiveID()) {
+            case APOLLO:
+                m_robotContainer = new ApolloContainer();
                 break; // competition
 
-            case 1:
-                m_robotContainer = new ClutchContainer();
+            case SIMULATION:
+                m_robotContainer = new ApolloContainer();
                 break; // simulation
 
-            case 2:
+            case BEETLE:
                 m_robotContainer = new BeetleContainer();
                 break; // beetle
 
-            case 3:
-                m_robotContainer = new NewRobotContainer();
+            case POSEIDON:
+                m_robotContainer = new PoseidonContainer();
                 break; // poseidon
 
             default:
-                m_robotContainer = new NewRobotContainer();
+                m_robotContainer = new ApolloContainer();
                 DriverStation.reportError(
-                        String.format(
-                                "ISSUE WITH CONSTRUCTING THE ROBOT CONTAINER. \n "
-                                        + "NewRobotContainer constructed by default. RobotID: %d",
-                                Config.getRobotId()),
+                        "ISSUE WITH CONSTRUCTING THE ROBOT CONTAINER. \n"
+                                + "NewRobotContainer constructed by default. RobotID: "
+                                + RobotID.getActiveID().name(),
                         true);
         }
 

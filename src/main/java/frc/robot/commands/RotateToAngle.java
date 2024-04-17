@@ -7,6 +7,7 @@ package frc.robot.commands;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
+import frc.lib.lib2706.GeomUtil;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 public class RotateToAngle extends TeleopSwerve {
@@ -18,14 +19,14 @@ public class RotateToAngle extends TeleopSwerve {
         super(driver);
 
         m_givenAngle = angle;
-        m_desiredAngle = SwerveSubsystem.rotateForAlliance(m_givenAngle);
+        m_desiredAngle = GeomUtil.rotateForAlliance(m_givenAngle);
     }
 
     // Called when the command is initially scheduled.
     @Override
     public void initialize() {
         super.initialize();
-        m_desiredAngle = SwerveSubsystem.rotateForAlliance(m_givenAngle);
+        m_desiredAngle = GeomUtil.rotateForAlliance(m_givenAngle);
         SwerveSubsystem.getInstance().resetDriveToPose();
     }
 

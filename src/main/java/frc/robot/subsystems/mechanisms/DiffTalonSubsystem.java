@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.lib.lib2706.SubsystemChecker;
 import frc.lib.lib2706.SubsystemChecker.SubsystemType;
 import frc.robot.Config;
+import frc.robot.Config.RobotID;
 
 public class DiffTalonSubsystem extends SubsystemBase {
     /**
@@ -37,10 +38,9 @@ public class DiffTalonSubsystem extends SubsystemBase {
         if (instance == null) {
             if (Config.DIFF.ISNEOS) {
                 DriverStation.reportError(
-                        String.format(
-                                "DiffTalonSubsystem.getInstance() was called even though"
-                                        + " Config.DIFF_ISNEOS is true. RobotID: %d",
-                                Config.getRobotId()),
+                        "DiffTalonSubsystem.getInstance() was called even though Config.DIFF_ISNEOS"
+                                + " is true. RobotID: "
+                                + RobotID.getActiveID().name(),
                         true);
             } else {
                 SubsystemChecker.subsystemConstructed(SubsystemType.DiffTalonSubsystem);

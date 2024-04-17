@@ -26,14 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * ROBOT IDs
- *
- * ID 0: Competition Robot (Crescendo) (NEEDS UPDATE ON robot.conf)
- * ID 1: Simulation of Comp Robot (Crescendo in Simulation)
- * ID 2: Beetle (Small Talon Tank Drive)
- * ID 3: Poseidon (Charged Up) (NEEDS UPDATE ON robot.conf)
- **/
 public final class Config {
     /**
      * Instructions for set up of robot.conf file on robot
@@ -58,40 +50,75 @@ public final class Config {
             Paths.get(System.getProperty("user.home"), "robot.conf");
 
     /**
-     * ID of the robot that code is running on
+     * Enum representing the different robot IDs.
+     * RobotID integers must be array indexes.
      */
-    private static int robotId = -1;
+    public enum RobotID {
+        APOLLO(0), // Crescendo, Apollo
+        SIMULATION(1), // Simulated Apollo
+        BEETLE(2), // Beetle
+        POSEIDON(3); // Poseidon, Charged Up
 
-    private static final int SIMULATION_ID = 1;
+        private final int id;
 
-    /**
-     * Obtain the robot id found in the robot.conf file
-     *
-     * @return The id of the robot
-     */
-    public static int getRobotId() {
-
-        if (robotId < 0) {
-            // Backup in case the FMS is attached, force to comp robot
-            if (DriverStation.isFMSAttached()) {
-                robotId = 0;
-            }
-
-            // Set the Id to the simulation if simulating
-            else if (RobotBase.isSimulation()) {
-                robotId = SIMULATION_ID;
-
-                // Not simulation, read the file on the roborio for it's robot id.
-            } else {
-                try (BufferedReader reader = Files.newBufferedReader(ROBOT_ID_LOC)) {
-                    robotId = Integer.parseInt(reader.readLine());
-                } catch (Exception e) {
-                    robotId = 0; // DEFAULT TO COMP ROBOT IF NO ID IS FOUND
-                }
-            }
+        RobotID(int id) {
+            this.id = id;
         }
 
-        return robotId;
+        /**
+         * Get the robot id.
+         * @return An array index representing the robot id.
+         */
+        public int getId() {
+            return id;
+        }
+
+        /** ID of the robot that code is running on */
+        private static RobotID activeRobot = null;
+
+        /** Fallback ID used if the robot id code ever fails */
+        private static final RobotID FALLBACK_ID = APOLLO;
+
+        /**
+         * Get the active robot id. If the robot id is not found, it will default to the fallbackID.
+         *
+         * @return Active robot id
+         */
+        public static RobotID getActiveID() {
+            if (activeRobot != null) {
+                return activeRobot;
+            }
+
+            if (DriverStation.isFMSAttached()) {
+                // Backup in case the FMS is attached, force to comp robot
+                activeRobot = APOLLO;
+            } else if (RobotBase.isSimulation()) {
+                activeRobot = SIMULATION;
+            } else {
+                // Read the robot.conf file on the roborio to get it's robot id.
+                try (BufferedReader reader = Files.newBufferedReader(ROBOT_ID_LOC)) {
+                    int robotID = Integer.parseInt(reader.readLine());
+                    for (RobotID robot : RobotID.values()) {
+                        if (robot.getId() == robotID) {
+                            activeRobot = robot;
+                            return activeRobot;
+                        }
+                    }
+                    activeRobot = FALLBACK_ID;
+                    DriverStation.reportError(
+                            "Integer in robot.conf is not mapped to a robot id. Falling back to "
+                                    + activeRobot.name(),
+                            false);
+                } catch (Exception e) {
+                    activeRobot = FALLBACK_ID;
+                    DriverStation.reportError(
+                            "Could not read robot.conf for a robot id. Falling back to "
+                                    + activeRobot.name(),
+                            false);
+                }
+            }
+            return activeRobot;
+        }
     }
 
     /**
@@ -104,17 +131,17 @@ public final class Config {
      */
     @SafeVarargs
     public static <T> T robotSpecific(T first, T... more) {
-        if (getRobotId() < 1 || getRobotId() > more.length) {
+        if (RobotID.getActiveID().getId() < 1 || RobotID.getActiveID().getId() > more.length) {
             return first;
         } else {
-            return more[getRobotId() - 1];
+            return more[RobotID.getActiveID().getId() - 1];
         }
     }
 
     public enum CANID {
-        PIGEON(robotSpecific(16, -1, 27, 30)),
-        CANDLE(robotSpecific(25, -1, 15, 15)),
-        CLIMBER(robotSpecific(18, 4, 5, -1)),
+        PIGEON(robotSpecific(16, 16, 27, 30)),
+        CANDLE(robotSpecific(25, 25, 15, 15)),
+        CLIMBER(robotSpecific(18, 18, 5, -1)),
 
         // swerve CAN IDs
         SWERVE_FL_DRIVE(4),
@@ -158,17 +185,19 @@ public final class Config {
 
     public static final class GeneralConfig {
         public static final boolean enableTunableData = false;
-        public static final double joystickDeadband = 0.1;
+        public static final double joystickDeadband = 0.6;
 
         public static final int revMaxRetries = 5;
         public static final int ctreMaxRetries = 5;
+
+        public static final double loopPeriodSecs = 0.02;
     }
 
     public static final boolean disableStateBasedProgramming =
             true; // True to disable state based programming and use only simple commands
 
     public static final class RioConfig {
-        public static int ANALOG_SELECTOR_PORT = robotSpecific(3, -1, -1, 0);
+        public static int ANALOG_SELECTOR_PORT = robotSpecific(3, 3, -1, 0);
     }
 
     public static final class PhotonConfig {
@@ -307,6 +336,7 @@ public final class Config {
         public static final double trackWidth = Units.inchesToMeters(25.787);
         public static final double wheelBase = Units.inchesToMeters(20.472);
         public static final double wheelDiameter = Units.inchesToMeters(3.884);
+        public static final double wheelRadius = wheelDiameter / 2.0;
         public static final double wheelCircumference = wheelDiameter * Math.PI;
 
         public static final double driveGearRatio = (8.14 / 1.0);
@@ -322,7 +352,8 @@ public final class Config {
                         new Translation2d(-wheelBase / 2.0, -trackWidth / 2.0));
 
         /* Swerve Voltage Compensation Changed */
-        public static final double voltageComp = 12.0;
+        public static final double driveVoltComp = 12.0;
+        public static final double steerVoltComp = 12.0;
 
         /* Swerve Current Limiting, Changed */
         public static final int steerContinuousCurrentLimit = 30; // 20
@@ -342,7 +373,7 @@ public final class Config {
         /* Drive Motor Characterization Values Changed */
         public static final double driveKS = 0.667; // Volts for static friction
         public static final double driveKV = 4.0; // Volts per mps
-        public static final double driveKA = 0.5; // Volts per mps^2
+        public static final double driveKA = 0.5; // Volts per mps^2 (NOT USED)
 
         public static final double driveVelAllowableError = 0.001; // mps
         public static final double steerPosAllowableError = Math.toRadians(0.01);
@@ -384,7 +415,7 @@ public final class Config {
 
         /* Neutral Modes */
         public static final IdleMode steerIdleMode = IdleMode.kBrake;
-        public static final IdleMode driveNeutralMode = IdleMode.kBrake;
+        public static final IdleMode driveIdleMode = IdleMode.kBrake;
 
         /* Motor Inverts */
         public static final boolean driveInvert = false;
