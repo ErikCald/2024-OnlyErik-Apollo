@@ -15,25 +15,25 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.IntegerEntry;
 import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.AdvantageUtil;
 import frc.lib.lib2706.GeomUtil;
+import frc.lib.lib2706.NTUtil;
 import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
 import frc.robot.Config.CANID;
 import frc.robot.Config.GeneralConfig;
+import frc.robot.Config.NTConfig;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
@@ -41,77 +41,37 @@ import frc.robot.Robot;
 
 import java.util.Optional;
 
+/**
+ * The SwerveSubsystem class represents the subsystem responsible for controlling the swerve drive of the robot.
+ */
 public class SwerveSubsystem extends SubsystemBase {
-    private final WPI_PigeonIMU gyro;
-    private Rotation2d simHeading = new Rotation2d();
+    private final WPI_PigeonIMU m_gyro;
+    private Rotation2d m_simHeading = new Rotation2d();
 
-    private SwerveDriveOdometry swerveOdometry;
-    private SwerveModuleAbstract[] mSwerveMods;
-    String tableName = "SwerveChassis";
-    private NetworkTable swerveTable = NetworkTableInstance.getDefault().getTable(tableName);
-    private DoublePublisher pubCurrentAngle =
-            swerveTable.getDoubleTopic("Current angle (deg)").publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubCurrentPositionX =
-            swerveTable
-                    .getDoubleTopic("Current positionX (m) ")
-                    .publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubCurrentPositionY =
-            swerveTable
-                    .getDoubleTopic("Current positionY (m) ")
-                    .publish(PubSubOption.periodic(0.02));
-    private DoubleArrayPublisher pubCurrentPose =
-            swerveTable.getDoubleArrayTopic("Pose ").publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubGyroRate =
-            swerveTable.getDoubleTopic("Gyro Rate (degps)").publish(PubSubOption.periodic(0.02));
-    private DoubleArrayPublisher pubDesiredStates =
-            swerveTable.getDoubleArrayTopic("DesiredStates").publish(PubSubOption.periodic(0.02));
-    private DoubleArrayPublisher pubMeasuredStates =
-            swerveTable.getDoubleArrayTopic("MeasuredStates").publish(PubSubOption.periodic(0.02));
+    private final SwerveDriveOdometry m_odometry;
+    private final SwerveModuleAbstract[] m_modules;
+    private final PoseBuffer m_poseBuffer;
+    private int modSyncCounter = 0;
 
-    private NetworkTable visionPidTable = swerveTable.getSubTable("VisionPid");
-    private DoublePublisher pubMeasuredSpeedX =
-            visionPidTable
-                    .getDoubleTopic("MeasuredSpeedX (mps)")
-                    .publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubMeasuredSpeedY =
-            visionPidTable
-                    .getDoubleTopic("MeasuredSpeedY (mps)")
-                    .publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubMeasuredSpeedRot =
-            visionPidTable
-                    .getDoubleTopic("MeasuredSpeedRot (radps)")
-                    .publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubDesiredX =
-            visionPidTable.getDoubleTopic("DesiredX (m)").publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubDesiredY =
-            visionPidTable.getDoubleTopic("DesiredY (m)").publish(PubSubOption.periodic(0.02));
-    private DoublePublisher pubDesiredRot =
-            visionPidTable.getDoubleTopic("DesiredRot (deg)").publish(PubSubOption.periodic(0.02));
+    private NetworkTable directPIDTable = NTConfig.swerveTable.getSubTable("DirectPID");
+    private final ProfiledPIDController m_pidX, m_pidY, m_pidRot;
+    private Pose2d m_desiredPose = null;
 
-    // ProfiledPIDControllers for the pid control
-    ProfiledPIDController pidControlX;
-    double currentX;
-    double desiredX;
-    ProfiledPIDController pidControlY;
-    double currentY;
-    double desiredY;
-    ProfiledPIDController pidControlRotation;
-    double currentRotation;
-    double desiredRotation;
-    int tempSynchCounter = 0;
-    boolean recievedPidInstruction = false;
-
-    /**
-     * Counter to synchronize the modules relative encoder with absolute encoder when not moving.
-     */
-    private int moduleSynchronizationCounter = 0;
-
-    private Field2d field;
-
-    private PoseBuffer poseBuffer;
+    private final DoubleArrayPublisher pubEstimatedPose, pubDesiredStates, pubMeasuredStates;
+    private final DoublePublisher pubPoseX, pubPoseY, pubPoseRot, pubGyroRate;
+    private final DoublePublisher pubVelSetpointX, pubVelSetpointY, pubVelSetpointRot;
+    private final DoublePublisher pubMeasVelX, pubMeasVelY, pubMeasVelRot;
+    private final DoublePublisher pubDesiredX, pubDesiredY, pubDesiredRot;
+    private final IntegerEntry pubNumSyncs;
 
     private static SwerveSubsystem instance;
 
+    /**
+     * Returns the instance of the SwerveSubsystem.
+     * If the instance does not exist, it creates a new one.
+     *
+     * @return the instance of the SwerveSubsystem
+     */
     public static SwerveSubsystem getInstance() {
         if (instance == null) {
             instance = new SwerveSubsystem();
@@ -119,14 +79,19 @@ public class SwerveSubsystem extends SubsystemBase {
         return instance;
     }
 
+    /**
+     * The SwerveSubsystem class represents a subsystem for controlling a swerve drive system.
+     * It initializes the gyro, swerve modules, odometry, and PID controllers.
+     * It also provides methods for driving the robot, resetting odometry, and accessing pose information.
+     */
     private SwerveSubsystem() {
-        gyro = new WPI_PigeonIMU(CANID.PIGEON.val());
-        gyro.configFactoryDefault();
+        m_gyro = new WPI_PigeonIMU(CANID.PIGEON.val());
+        m_gyro.configFactoryDefault();
 
         switch (RobotID.getActiveID()) {
             default:
             case APOLLO:
-                mSwerveMods =
+                m_modules =
                         new SwerveModuleAbstract[] {
                             new SwerveModuleSparkMaxCancoder(
                                     Config.SwerveConfig.Mod0.constants, "FL"),
@@ -140,7 +105,7 @@ public class SwerveSubsystem extends SubsystemBase {
                 break;
 
             case SIMULATION:
-                mSwerveMods =
+                m_modules =
                         new SwerveModuleAbstract[] {
                             new SwerveModuleSim(Config.SwerveConfig.Mod0.constants, "FL"),
                             new SwerveModuleSim(Config.SwerveConfig.Mod1.constants, "FR"),
@@ -153,7 +118,7 @@ public class SwerveSubsystem extends SubsystemBase {
                 throw new UnsupportedOperationException("Beetle does not support swerve.");
         }
 
-        swerveOdometry =
+        m_odometry =
                 new SwerveDriveOdometry(
                         Config.SwerveConfig.swerveKinematics,
                         getYaw(),
@@ -192,117 +157,154 @@ public class SwerveSubsystem extends SubsystemBase {
                 this // Reference to this subsystem to set requirements
                 );
 
-        poseBuffer = new PoseBuffer();
+        m_poseBuffer = new PoseBuffer();
 
-        field = new Field2d();
-        SmartDashboard.putData("Field", field);
+        Constraints xyConstraints = new Constraints(2.5, 4.5);
+        Constraints rotConstraints = new Constraints(8 * Math.PI, 8 * Math.PI);
+        m_pidX = new ProfiledPIDController(9, 0.5, 0.2, xyConstraints);
+        m_pidY = new ProfiledPIDController(9, 0.5, 0.2, xyConstraints);
+        m_pidRot = new ProfiledPIDController(5.0, 0.5, 0.3, rotConstraints);
+        m_pidRot.enableContinuousInput(-Math.PI, Math.PI);
 
-        pidControlX =
-                new ProfiledPIDController(9, 0.5, 0.2, new TrapezoidProfile.Constraints(2.5, 4.5));
-        pidControlY =
-                new ProfiledPIDController(9, 0.5, 0.2, new TrapezoidProfile.Constraints(2.5, 4.5));
-        pidControlRotation =
-                new ProfiledPIDController(
-                        5.0, 0.5, 0.3, new TrapezoidProfile.Constraints(8 * Math.PI, 8 * Math.PI));
-        pidControlRotation.enableContinuousInput(-Math.PI, Math.PI);
+        m_pidX.setIZone(0.3);
+        m_pidY.setIZone(0.3);
+        m_pidRot.setIZone(Math.toRadians(3));
 
-        pidControlX.setIZone(0.3);
-        pidControlY.setIZone(0.3);
-        pidControlRotation.setIZone(Math.toRadians(3));
+        /* Setup NetworkTables */
+        pubEstimatedPose = NTUtil.doubleArrayPubFast(NTConfig.swerveTable, "EstimatedPose");
+        pubDesiredStates = NTUtil.doubleArrayPubFast(NTConfig.swerveTable, "DesiredStates");
+        pubMeasuredStates = NTUtil.doubleArrayPubFast(NTConfig.swerveTable, "MeasuredStates");
+
+        pubPoseX = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseX (m)");
+        pubPoseY = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseY (m)");
+        pubPoseRot = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseRot (m)");
+        pubGyroRate = NTUtil.doublePubFast(NTConfig.swerveTable, "GyroRate (degps)");
+
+        pubMeasVelX = NTUtil.doublePubFast(directPIDTable, "MeasuredVelX (mps)");
+        pubMeasVelY = NTUtil.doublePubFast(directPIDTable, "MeasuredVelY (mps)");
+        pubMeasVelRot = NTUtil.doublePubFast(directPIDTable, "MeasuredVelRot (degps)");
+
+        // Direct PID NT values
+        pubVelSetpointX = NTUtil.doublePubFast(directPIDTable, "VelSetpointX (mps)");
+        pubVelSetpointY = NTUtil.doublePubFast(directPIDTable, "VelSetpointY (mps)");
+        pubVelSetpointRot = NTUtil.doublePubFast(directPIDTable, "VelSetpointRot (degps)");
+        pubDesiredX = NTUtil.doublePubFast(directPIDTable, "DesiredX (m)");
+        pubDesiredY = NTUtil.doublePubFast(directPIDTable, "DesiredY (m)");
+        pubDesiredRot = NTUtil.doublePubFast(directPIDTable, "DesiredRot (degps)");
+
+        pubNumSyncs =
+                NTConfig.swerveTable
+                        .getIntegerTopic("NumEncoderSyncs")
+                        .getEntry(0, PubSubOption.periodic(NTConfig.SLOW_PERIODIC_SECONDS));
+        pubNumSyncs.set(0);
     }
 
-    public void drive(
-            ChassisSpeeds speeds,
-            boolean fieldRelative,
-            boolean isOpenLoop,
-            boolean flipForAlliance) {
-        Rotation2d heading =
-                flipForAlliance ? GeomUtil.rotateForAlliance(getHeading()) : getHeading();
-
+    /**
+     * Drives the swerve subsystem with the given speeds.
+     *
+     * @param speeds The desired chassis speeds.
+     * @param fieldRelative True for if the speeds are field-relative or false for robot-relative.
+     * @param isOpenLoop True to use open-loop control, or false for closed loop control of the swerve modules.
+     */
+    public void drive(ChassisSpeeds speeds, boolean fieldRelative, boolean isOpenLoop) {
         if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
-            System.out.println(
-                    "Speeds: "
-                            + Math.toDegrees(speeds.omegaRadiansPerSecond)
-                            + ", Angle: "
-                            + Math.toDegrees(
-                                    speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
-            gyro.setFusedHeading(
-                    gyro.getFusedHeading()
-                            + Math.toDegrees(
-                                    speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
-
-            simHeading =
-                    simHeading.plus(
-                            new Rotation2d(
-                                    speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+            double addRadians = speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs;
+            m_simHeading = m_simHeading.plus(new Rotation2d(addRadians));
         }
 
         SwerveModuleState[] swerveModuleStates =
                 Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(
-                        // ChassisSpeeds.discretize(
-                        fieldRelative
-                                ? ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading)
-                                : speeds);
-        // 0.02));
+                        ChassisSpeeds.discretize(
+                                fieldRelative
+                                        ? ChassisSpeeds.fromFieldRelativeSpeeds(
+                                                speeds, getHeading())
+                                        : speeds,
+                                0.02));
+
         SwerveDriveKinematics.desaturateWheelSpeeds(
                 swerveModuleStates, Config.SwerveConfig.maxSpeed);
         pubDesiredStates.accept(AdvantageUtil.deconstructSwerveModuleState(swerveModuleStates));
 
-        for (int i = 0; i < mSwerveMods.length; i++) {
-            mSwerveMods[i].setDesiredState(swerveModuleStates[i], isOpenLoop);
+        for (int i = 0; i < m_modules.length; i++) {
+            m_modules[i].setDesiredState(swerveModuleStates[i], isOpenLoop);
         }
     }
 
-    public void drive(ChassisSpeeds speeds, boolean fieldRelative, boolean isOpenLoop) {
-        drive(speeds, fieldRelative, isOpenLoop, true);
-    }
-
-    /* Used by SwerveControllerCommand in Auto */
+    /**
+     * Sets the desired states for the swerve modules. This parameter set is required by PathPlanner
+     *
+     * @param desiredStates An array of SwerveModuleState objects representing the desired states for each module.
+     * @param isOpenLoop    A boolean indicating whether the control mode is open loop or not.
+     */
     public void setModuleStates(SwerveModuleState[] desiredStates, boolean isOpenLoop) {
-        setModuleStates(desiredStates, isOpenLoop, false);
-    }
-
-    public void setModuleStates(
-            SwerveModuleState[] desiredStates, boolean isOpenLoop, boolean isDisableAntiJitter) {
         SwerveDriveKinematics.desaturateWheelSpeeds(desiredStates, Config.SwerveConfig.maxSpeed);
         pubDesiredStates.accept(AdvantageUtil.deconstructSwerveModuleState(desiredStates));
 
-        for (int i = 0; i < mSwerveMods.length; i++) {
-            mSwerveMods[i].setDesiredState(desiredStates[i], isOpenLoop);
+        for (int i = 0; i < m_modules.length; i++) {
+            m_modules[i].setDesiredState(desiredStates[i], isOpenLoop);
         }
     }
 
+    /**
+     * Returns the current pose of the robot
+     *
+     * @return the current pose as a Pose2d object
+     */
     public Pose2d getPose() {
-        return swerveOdometry.getPoseMeters();
+        return m_odometry.getPoseMeters();
     }
 
+    /**
+     * Resets the odometry of the swerve subsystem to the specified pose.
+     *
+     * @param pose The desired pose to set the odometry to.
+     */
     public void resetOdometry(Pose2d pose) {
-        swerveOdometry.resetPosition(getYaw(), getPositions(), pose);
+        m_odometry.resetPosition(getYaw(), getPositions(), pose);
     }
 
+    /**
+     * Retrieves the current state of all swerve modules.
+     *
+     * @return an array of SwerveModuleState objects representing the state of each swerve module
+     */
     public SwerveModuleState[] getStates() {
         SwerveModuleState[] states = new SwerveModuleState[4];
-        for (int i = 0; i < mSwerveMods.length; i++) {
-            states[i] = mSwerveMods[i].getState();
+        for (int i = 0; i < m_modules.length; i++) {
+            states[i] = m_modules[i].getState();
         }
 
         return states;
     }
 
+    /**
+     * Retrieves the positions of all swerve modules in the swerve subsystem.
+     *
+     * @return an array of SwerveModulePosition objects representing the
+     *         positions of the swerve modules.
+     */
     public SwerveModulePosition[] getPositions() {
         SwerveModulePosition[] positions = new SwerveModulePosition[4];
-        for (int i = 0; i < mSwerveMods.length; i++) {
-            positions[i] = mSwerveMods[i].getPosition();
+        for (int i = 0; i < m_modules.length; i++) {
+            positions[i] = m_modules[i].getPosition();
         }
 
         return positions;
     }
 
+    /**
+     * Returns the yaw rotation in the form of a Rotation2d object.
+     *
+     * This returns directly from the gyro which is not correct for the field.
+     * Use getHeading() to get a heading corrected for the field.
+     *
+     * @return The yaw rotation as a Rotation2d object.
+     */
     private Rotation2d getYaw() {
         if (Robot.isSimulation()) {
-            return simHeading;
+            return m_simHeading;
         }
-        return gyro.getRotation2d();
+        return m_gyro.getRotation2d();
     }
 
     /**`
@@ -321,10 +323,21 @@ public class SwerveSubsystem extends SubsystemBase {
                                         GeomUtil.rotateForAlliance(angle))));
     }
 
+    /**
+     * Creates a command that sets the odometry to the specified pose.
+     *
+     * @param pose The desired pose to set the odometry to.
+     * @return The command that sets the odometry.
+     */
     public Command setOdometryCommand(Pose2d pose) {
         return Commands.runOnce(() -> resetOdometry(pose));
     }
 
+    /**
+     * Returns a Command object that sets the wheels of the swerve subsystem to a locked position in an X pattern.
+     *
+     * @return The Command object that sets the wheels to a locked position in an X pattern.
+     */
     public Command setLockWheelsInXCommand() {
         return run(
                 () ->
@@ -335,33 +348,33 @@ public class SwerveSubsystem extends SubsystemBase {
                                     new SwerveModuleState(0, Rotation2d.fromDegrees(-45)),
                                     new SwerveModuleState(0, Rotation2d.fromDegrees(45))
                                 },
-                                true,
                                 true));
     }
 
+    /**
+     * Returns a Command object that drives the robot to the desired pose.
+     *
+     * @param desiredPose The desired pose for the robot to drive to.
+     * @return A Command object that drives the robot to the desired pose.
+     */
     public Command getDriveToPoseCommand(Pose2d desiredPose) {
         return runOnce(() -> resetDriveToPose())
                 .andThen(run(() -> driveToPose(desiredPose)))
                 .until(() -> isAtPose(PhotonConfig.POS_TOLERANCE, PhotonConfig.ANGLE_TOLERANCE));
     }
 
-    // Swerve actual driving methods
+    /**
+     * Resets the drive to pose by setting the desired pose to null and resetting the PID controllers.
+     * This ensures that isAtPose returns false until driveToPose is called again.
+     */
     public void resetDriveToPose() {
-        recievedPidInstruction = false;
-
-        currentX = getPose().getX();
-        currentY = getPose().getY();
-        currentRotation = getPose().getRotation().getRadians();
-
-        desiredX = getPose().getX();
-        desiredY = getPose().getY();
-        desiredRotation = getPose().getRotation().getRadians();
+        // Set desired pose to null so that isAtPose returns false until driveToPose is called
+        m_desiredPose = null;
 
         ChassisSpeeds speeds = getFieldRelativeSpeeds();
-        pidControlX.reset(getPose().getX(), speeds.vxMetersPerSecond);
-        pidControlY.reset(getPose().getY(), speeds.vyMetersPerSecond);
-        pidControlRotation.reset(
-                getPose().getRotation().getRadians(), speeds.omegaRadiansPerSecond);
+        m_pidX.reset(getPose().getX(), speeds.vxMetersPerSecond);
+        m_pidY.reset(getPose().getY(), speeds.vyMetersPerSecond);
+        m_pidRot.reset(getHeading().getRadians(), speeds.omegaRadiansPerSecond);
     }
 
     /**
@@ -371,50 +384,62 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The pid value to pass to rotation in the drive method
      */
     public double calculateRotation(Rotation2d desiredAngle) {
-        return pidControlRotation.calculate(
+        return m_pidRot.calculate(
                 SwerveSubsystem.getInstance().getHeading().getRadians(), desiredAngle.getRadians());
     }
 
+    /**
+     * Drives the robot to a specified pose.
+     *
+     * @param pose The desired pose to drive to.
+     */
     public void driveToPose(Pose2d pose) {
-        // update the currentX and currentY
-
-        currentX = getPose().getX();
-        currentY = getPose().getY();
-        currentRotation = getPose().getRotation().getRadians();
-
-        desiredX = pose.getX();
-        desiredY = pose.getY();
-        desiredRotation = pose.getRotation().getRadians();
-
         double xSpeed = 0;
         double ySpeed = 0;
         double rotSpeed = 0;
 
-        if (Math.abs(currentX - desiredX) > SwerveConfig.translationAllowableError) {
-            xSpeed = pidControlX.calculate(currentX, desiredX);
+        if (Math.abs(getPose().getX() - pose.getX()) > SwerveConfig.translationAllowableError) {
+            xSpeed = m_pidX.calculate(getPose().getX(), pose.getX());
+            xSpeed += m_pidX.getSetpoint().velocity;
         }
 
-        if (Math.abs(currentY - desiredY) > SwerveConfig.translationAllowableError) {
-            ySpeed = pidControlY.calculate(currentY, desiredY);
+        if (Math.abs(getPose().getY() - pose.getY()) > SwerveConfig.translationAllowableError) {
+            ySpeed = m_pidY.calculate(getPose().getX(), pose.getY());
+            ySpeed += m_pidY.getSetpoint().velocity;
         }
 
-        if (Math.abs(currentRotation - desiredRotation) > SwerveConfig.rotationAllowableError) {
-            rotSpeed = pidControlRotation.calculate(currentRotation, desiredRotation);
+        double angleError = getHeading().getRadians() - pose.getRotation().getRadians();
+        if (Math.abs(angleError) > SwerveConfig.rotationAllowableError) {
+            rotSpeed =
+                    m_pidRot.calculate(getHeading().getRadians(), pose.getRotation().getRadians());
         }
 
-        pubDesiredX.accept(pidControlX.getSetpoint().position);
-        pubDesiredY.accept(pidControlY.getSetpoint().position);
-        pubDesiredRot.accept(Math.toDegrees(pidControlRotation.getSetpoint().position));
+        m_desiredPose = pose;
+        pubDesiredX.accept(pose.getX());
+        pubDesiredY.accept(pose.getY());
+        pubDesiredRot.accept(pose.getRotation().getDegrees());
 
-        recievedPidInstruction = true;
-        drive(new ChassisSpeeds(xSpeed, ySpeed, rotSpeed), true, true, false);
+        pubVelSetpointX.accept(m_pidX.getSetpoint().velocity);
+        pubVelSetpointY.accept(m_pidY.getSetpoint().velocity);
+        pubVelSetpointRot.accept(Math.toDegrees(m_pidRot.getSetpoint().velocity));
+
+        drive(new ChassisSpeeds(xSpeed, ySpeed, rotSpeed), true, false);
     }
 
-    public boolean isAtPose(double tol, double angleTol) {
-        return recievedPidInstruction
-                && Math.abs(currentX - desiredX) < tol
-                && Math.abs(currentY - desiredY) < tol
-                && Math.abs(MathUtil.angleModulus(currentRotation - desiredRotation)) < angleTol;
+    /**
+     * Checks if the robot is at the desired pose within a given tolerance.
+     *
+     * @param posTol    The tolerance for the position coordinates (X and Y).
+     * @param angleTol  The tolerance for the angle in radians.
+     * @return          True if the robot is at the desired pose, false otherwise.
+     */
+    public boolean isAtPose(double posTol, double angleTol) {
+        double angleError = getHeading().getRadians() - m_desiredPose.getRotation().getRadians();
+
+        return m_desiredPose != null // If we haven't set a pose, we can't be at it
+                && Math.abs(getPose().getX() - m_desiredPose.getX()) < posTol
+                && Math.abs(getPose().getY() - m_desiredPose.getY()) < posTol
+                && Math.abs(MathUtil.angleModulus(angleError)) < angleTol;
     }
 
     /**
@@ -426,7 +451,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return An Optional of the Pose2d or an empty Optional.
      */
     public Optional<Pose2d> getPoseAtTimestamp(double timestampSeconds) {
-        return (poseBuffer.getPoseAtTimestamp(timestampSeconds));
+        return m_poseBuffer.getPoseAtTimestamp(timestampSeconds);
     }
 
     @Override
@@ -435,75 +460,104 @@ public class SwerveSubsystem extends SubsystemBase {
         SwerveModuleState[] states = getStates();
         pubMeasuredStates.accept(AdvantageUtil.deconstructSwerveModuleState(states));
 
-        for (SwerveModuleAbstract mod : mSwerveMods) {
+        for (SwerveModuleAbstract mod : m_modules) {
             mod.periodic();
         }
 
-        swerveOdometry.update(getYaw(), positions);
-        field.setRobotPose(getPose());
+        m_odometry.update(getYaw(), positions);
 
-        // If the robot isn't moving synchronize the encoders every 100ms (Inspired by democrat's
-        // SDS
-        // lib)
-        // To ensure that everytime we initialize it works.
         if (DriverStation.isDisabled() && !isChassisMoving(0.01) && !areModulesRotating(2)) {
-            if (++moduleSynchronizationCounter > 6 && isSwerveNotSynched()) {
+            if (++modSyncCounter > 6 && isSwerveNotSynched()) {
                 synchSwerve();
-                System.out.println("Resynced" + ++tempSynchCounter);
-                moduleSynchronizationCounter = 0;
+                pubNumSyncs.accept(pubNumSyncs.get() + 1);
+                modSyncCounter = 0;
             }
         } else {
-            moduleSynchronizationCounter = 0;
+            modSyncCounter = 0;
         }
 
-        poseBuffer.addPoseToBuffer(getPose());
+        m_poseBuffer.addPoseToBuffer(getPose());
 
-        // Check if the feedforward has been updated on NT
-        tunableSimpleFF.checkForUpdates();
+        // Check if the tunable feedforward or pids have changed
+        SwerveModuleAbstract.updateTunableModuleConstants();
 
-        pubCurrentAngle.accept(getPose().getRotation().getDegrees());
-        pubCurrentPositionX.accept(getPose().getX());
-        pubCurrentPositionY.accept(getPose().getY());
-        pubCurrentPose.accept(AdvantageUtil.deconstruct(getPose()));
+        // Update NetworkTables
+        pubPoseRot.accept(getPose().getRotation().getDegrees());
+        pubPoseX.accept(getPose().getX());
+        pubPoseY.accept(getPose().getY());
+        pubEstimatedPose.accept(AdvantageUtil.deconstruct(getPose()));
 
         pubGyroRate.accept(getAngularRate());
 
         ChassisSpeeds speeds = getFieldRelativeSpeeds();
-        pubMeasuredSpeedX.accept(speeds.vxMetersPerSecond);
-        pubMeasuredSpeedY.accept(speeds.vyMetersPerSecond);
-        pubMeasuredSpeedRot.accept(Math.toDegrees(speeds.omegaRadiansPerSecond));
+        pubMeasVelX.accept(speeds.vxMetersPerSecond);
+        pubMeasVelY.accept(speeds.vyMetersPerSecond);
+        pubMeasVelRot.accept(Math.toDegrees(speeds.omegaRadiansPerSecond));
     }
 
+    /**
+     * Drives the robot with the given robot-relative speeds.
+     *
+     * @param robotRelativeSpeeds the robot-relative speeds to drive the robot with
+     */
     public void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
-        // ChassisSpeeds targetSpeeds = ChassisSpeeds.discretize(robotRelativeSpeeds, 0.02);
-        ChassisSpeeds targetSpeeds = robotRelativeSpeeds;
+        ChassisSpeeds targetSpeeds =
+                ChassisSpeeds.discretize(robotRelativeSpeeds, GeneralConfig.loopPeriodSecs);
+        // ChassisSpeeds targetSpeeds = robotRelativeSpeeds;
 
         SwerveModuleState[] targetStates =
-                Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(targetSpeeds);
+                SwerveConfig.swerveKinematics.toSwerveModuleStates(targetSpeeds);
         setModuleStates(targetStates, false);
     }
 
+    /**
+     * Returns the robot-relative speeds of the chassis.
+     *
+     * @return The robot-relative speeds of the chassis.
+     */
     public ChassisSpeeds getRobotRelativeSpeeds() {
-        return Config.SwerveConfig.swerveKinematics.toChassisSpeeds(getStates());
+        return SwerveConfig.swerveKinematics.toChassisSpeeds(getStates());
     }
 
+    /**
+     * Returns the heading of the swerve subsystem. This is corrected for the field.
+     * Heading of zero is away from the blue alliance driver stations.
+     *
+     * @return the rotation2d representing the heading of the swerve subsystem
+     */
     public Rotation2d getHeading() {
         return getPose().getRotation();
     }
 
+    /**
+     * Returns the angular rate of the swerve subsystem.
+     *
+     * @return The angular rate in degrees per second.
+     */
     public double getAngularRate() {
         double[] xyz_dps = new double[3];
-        gyro.getRawGyro(xyz_dps);
+        m_gyro.getRawGyro(xyz_dps);
         return xyz_dps[2];
     }
 
+    /**
+     * Returns the field-relative speeds of the chassis.
+     *
+     * @return The field-relative speeds of the chassis.
+     */
     public ChassisSpeeds getFieldRelativeSpeeds() {
         return ChassisSpeeds.fromRobotRelativeSpeeds(getRobotRelativeSpeeds(), getHeading());
     }
 
+    /**
+     * Checks if the chassis is currently moving based on the velocity tolerance.
+     *
+     * @param velToleranceMPS the velocity tolerance in meters per second
+     * @return true if the chassis is moving, false otherwise
+     */
     public boolean isChassisMoving(double velToleranceMPS) {
         double sumVelocity = 0;
-        for (SwerveModuleAbstract mod : mSwerveMods) {
+        for (SwerveModuleAbstract mod : m_modules) {
             sumVelocity += Math.abs(mod.getState().speedMetersPerSecond);
         }
 
@@ -514,32 +568,49 @@ public class SwerveSubsystem extends SubsystemBase {
         }
     }
 
-    public boolean areModulesRotating(double angleTolerance) {
+    /**
+     * Checks if the swerve modules are currently rotating.
+     *
+     * @param toleranceDegPerSec the tolerance for angular velocity in degrees per second
+     * @return true if any of the swerve modules are rotating, false otherwise
+     */
+    public boolean areModulesRotating(double toleranceDegPerSec) {
         double angularVelocitySum = 0;
-        for (int i = 0; i < mSwerveMods.length; i++) {
-            angularVelocitySum += mSwerveMods[i].getSteeringVelocity();
+        for (int i = 0; i < m_modules.length; i++) {
+            angularVelocitySum += m_modules[i].getSteeringVelocity();
         }
 
-        return angularVelocitySum > Math.toRadians(angleTolerance);
+        return angularVelocitySum > Math.toRadians(toleranceDegPerSec);
     }
 
+    /**
+     * Checks if any of the swerve modules in the swerve subsystem are not synchronized.
+     *
+     * @return true if any swerve module is not synchronized, false otherwise
+     */
     public boolean isSwerveNotSynched() {
-        for (SwerveModuleAbstract module : mSwerveMods) {
+        for (SwerveModuleAbstract module : m_modules) {
             if (!module.isModuleSynced()) {
-                return (true);
+                return true;
             }
         }
-        return (false);
+        return false;
     }
 
+    /**
+     * Synchronizes all swerve modules by resetting them to their absolute position.
+     */
     public void synchSwerve() {
-        for (SwerveModuleAbstract module : mSwerveMods) {
+        for (SwerveModuleAbstract module : m_modules) {
             module.resetToAbsolute();
         }
     }
 
+    /**
+     * Stops all the motors in the swerve subsystem.
+     */
     public void stopMotors() {
-        for (SwerveModuleAbstract mod : mSwerveMods) {
+        for (SwerveModuleAbstract mod : m_modules) {
             mod.stopMotors();
         }
     }

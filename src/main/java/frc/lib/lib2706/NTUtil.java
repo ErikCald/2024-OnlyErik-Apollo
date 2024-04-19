@@ -4,6 +4,7 @@
 
 package frc.lib.lib2706;
 
+import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.PubSubOption;
@@ -29,8 +30,7 @@ public class NTUtil {
      * @param topicName the name of the topic to publish the double values to
      * @return a DoublePublisher object for publishing double values
      */
-    public static DoublePublisher createDoublePublisherFast(
-            NetworkTable moduleTable, String topicName) {
+    public static DoublePublisher doublePubFast(NetworkTable moduleTable, String topicName) {
         return moduleTable.getDoubleTopic(topicName).publish(PubSubOption.periodic(FAST_PERIOD));
     }
 
@@ -41,8 +41,34 @@ public class NTUtil {
      * @param topicName the name of the topic to publish the double values to
      * @return a DoublePublisher object for publishing double values
      */
-    public static DoublePublisher createDoublePublisherSlow(
-            NetworkTable moduleTable, String topicName) {
+    public static DoublePublisher doublePubSlow(NetworkTable moduleTable, String topicName) {
         return moduleTable.getDoubleTopic(topicName).publish(PubSubOption.periodic(SLOW_PERIOD));
+    }
+
+    /**
+     * Creates a DoubleArrayPublisher object for publishing double array values to a specific topic.
+     *
+     * @param moduleTable the NetworkTable object representing the table to publish the values to
+     * @param topicName the name of the topic to publish the double array values to
+     * @return a DoubleArrayPublisher object for publishing double array values
+     */
+    public static DoubleArrayPublisher doubleArrayPubFast(
+            NetworkTable moduleTable, String topicName) {
+        return moduleTable
+                .getDoubleArrayTopic(topicName)
+                .publish(PubSubOption.periodic(FAST_PERIOD));
+    }
+
+    /**
+     * Creates a DoubleArrayPublisher object for publishing double array values to a specific topic.
+     *
+     * @param moduleTable the NetworkTable object representing the table to publish the values to
+     * @param topicName the name of the topic to publish the double array values to
+     * @return a DoubleArrayPublisher object for publishing double array values
+     */
+    public static DoubleArrayPublisher doubleArraySlow(NetworkTable moduleTable, String topicName) {
+        return moduleTable
+                .getDoubleArrayTopic(topicName)
+                .publish(PubSubOption.periodic(SLOW_PERIOD));
     }
 }

@@ -4,7 +4,7 @@
 
 package frc.robot.subsystems.swerve;
 
-import static frc.lib.lib2706.NTUtil.createDoublePublisherFast;
+import static frc.lib.lib2706.NTUtil.doublePubFast;
 
 import com.revrobotics.CANSparkBase.IdleMode;
 
@@ -24,7 +24,10 @@ import frc.robot.Config.SwerveConfig;
 
 import java.util.ArrayList;
 
-/** Add your docs here. */
+/**
+ * The abstract class representing a swerve module.
+ * This class provides common functionality and defines abstract methods that must be implemented by concrete swerve module classes.
+ */
 public abstract class SwerveModuleAbstract {
     private static ArrayList<SwerveModuleAbstract> s_modules = new ArrayList<>();
     protected static boolean s_hasSetup = false;
@@ -42,6 +45,10 @@ public abstract class SwerveModuleAbstract {
 
     protected TunableDouble tunableSteerOffset;
 
+    /**
+     * This class represents an abstract base class for a swerve module.
+     * It provides common functionality and properties for swerve modules.
+     */
     protected SwerveModuleAbstract(SwerveModuleConstants constants, String name) {
         /* Register modules to update pid controllers */
         s_modules.add(this);
@@ -53,15 +60,15 @@ public abstract class SwerveModuleAbstract {
         m_name = name;
         moduleTable = NTConfig.swerveTable.getSubTable("SwerveModule" + name);
 
-        pubMeasuredSpeed = createDoublePublisherFast(moduleTable, "Measured Speed (mps)");
-        pubDesiredSpeed = createDoublePublisherFast(moduleTable, "Desired Speed (mps)");
-        pubSpeedError = createDoublePublisherFast(moduleTable, " Speed Error (mps)");
+        pubMeasuredSpeed = doublePubFast(moduleTable, "Measured Speed (mps)");
+        pubDesiredSpeed = doublePubFast(moduleTable, "Desired Speed (mps)");
+        pubSpeedError = doublePubFast(moduleTable, " Speed Error (mps)");
 
-        pubMeasuredAngle = createDoublePublisherFast(moduleTable, "Measured Angle (deg)");
-        pubDesiredAngle = createDoublePublisherFast(moduleTable, "Desired Angle (deg)");
-        pubAngleError = createDoublePublisherFast(moduleTable, "Angle Error (deg)");
+        pubMeasuredAngle = doublePubFast(moduleTable, "Measured Angle (deg)");
+        pubDesiredAngle = doublePubFast(moduleTable, "Desired Angle (deg)");
+        pubAngleError = doublePubFast(moduleTable, "Angle Error (deg)");
 
-        pubCancoderAngle = createDoublePublisherFast(moduleTable, "Cancoder Angle (deg)");
+        pubCancoderAngle = doublePubFast(moduleTable, "Cancoder Angle (deg)");
 
         tunableSteerOffset =
                 new TunableDouble(

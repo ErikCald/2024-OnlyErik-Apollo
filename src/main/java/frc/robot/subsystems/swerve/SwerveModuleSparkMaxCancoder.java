@@ -36,6 +36,8 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
     private SparkPIDController driveController;
     private SparkPIDController steerController;
 
+    private boolean scheduleSyncEncoders = false;
+
     /**
      * Represents a Swerve Module with SparkMax motor controllers and CANCoder for steering feedback.
      * This class provides methods for configuring and controlling the steer and drive motors,
@@ -68,7 +70,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         ErrorTrackingSubsystem.getInstance().register(steerMotor, driveMotor);
 
         /* Reset the integrated steering encoder from absolute cancoder */
-        resetToAbsolute();
+        setNEOEncoderFromCancoder();
 
         /* Burn settings to flash */
         burnFlash();
@@ -198,6 +200,13 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      */
     @Override
     public void resetToAbsolute() {
+        scheduleSyncEncoders = true;
+    }
+
+    /**
+     * Sets the NEO encoder position based on the CANCoder's radians value.
+     */
+    private void setNEOEncoderFromCancoder() {
         integratedSteerEncoder.setPosition(getCanCoder().getRadians());
     }
 
@@ -215,6 +224,17 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         // Send the desired state to the motors
         setAngle(desiredState.angle);
         setSpeed(desiredState, isOpenLoop);
+
+        // Reset to absolute if scheduled and if the module is not about to move
+        double angleError = desiredState.angle.getRadians() - getAngle().getRadians();
+        boolean shouldSync =
+                scheduleSyncEncoders
+                        && Math.abs(desiredState.speedMetersPerSecond) < SwerveConfig.syncMPSTol
+                        && Math.abs(MathUtil.angleModulus(angleError)) < SwerveConfig.syncRadTol;
+        if (shouldSync) {
+            setNEOEncoderFromCancoder();
+        }
+        scheduleSyncEncoders = false;
 
         // Publish the desired state to the network table
         pubDesiredAngle.accept(desiredState.angle.getDegrees());
@@ -348,11 +368,11 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
     @Override
     public boolean isModuleSynced() {
         // Calculate the angle error between the NEO encoder and cancoder
-        double angleError = getAngle().getDegrees() - getCanCoder().getDegrees();
+        double angleError = getAngle().getRadians() - getCanCoder().getRadians();
 
-        // Wrap the angle to (-180, 180], get the absolute value, then check if the error is less
+        // Wrap the angle to (-pi, pi], get the absolute value, then check if the error is less
         // than the tolerance
-        if (Math.abs(MathUtil.inputModulus(angleError, -180, 180)) < SwerveConfig.synchTolerance) {
+        if (Math.abs(MathUtil.angleModulus(angleError)) < SwerveConfig.syncMetersTol) {
             return true;
         } else {
             return false;

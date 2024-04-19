@@ -342,7 +342,9 @@ public final class Config {
         public static final double driveGearRatio = (8.14 / 1.0);
         public static final double steerGearRatio = (12.8 / 1.0);
 
-        public static final double synchTolerance = 1;
+        public static final double syncMetersTol = Math.toRadians(1);
+        public static final double syncMPSTol = 1;
+        public static final double syncRadTol = Math.toRadians(1);
 
         public static final SwerveDriveKinematics swerveKinematics =
                 new SwerveDriveKinematics(
@@ -654,7 +656,8 @@ public final class Config {
                 armTable = NetworkTableInstance.getDefault().getTable("Arm"),
                 swerveTable = NetworkTableInstance.getDefault().getTable("Swerve"),
                 climberTable = NetworkTableInstance.getDefault().getTable("Climber"),
-                intakeTable = NetworkTableInstance.getDefault().getTable("Intake");
+                intakeTable = NetworkTableInstance.getDefault().getTable("Intake"),
+                visionTable = NetworkTableInstance.getDefault().getTable("Vision");
 
         public static double SLOW_PERIODIC_SECONDS = 250;
         public static double FAST_PERIODIC_SECONDS = 20;
