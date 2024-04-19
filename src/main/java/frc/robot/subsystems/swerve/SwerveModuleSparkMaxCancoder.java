@@ -15,9 +15,8 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-
-import frc.lib.lib2706.PIDConfig;
-import frc.lib.lib2706.TunableDouble;
+import frc.lib.lib2706.controllers.PIDConfig;
+import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;

@@ -4,8 +4,6 @@
 
 package frc.robot.subsystems.swerve;
 
-import static frc.lib.lib2706.NTUtil.doublePubFast;
-
 import com.revrobotics.CANSparkBase.IdleMode;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -13,14 +11,15 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
-
-import frc.lib.lib2706.PIDConfig;
-import frc.lib.lib2706.TunableDouble;
-import frc.lib.lib2706.TunablePIDConfig;
-import frc.lib.lib2706.TunableSimpleFeedforward;
+import frc.lib.lib2706.controllers.PIDConfig;
+import frc.lib.lib2706.networktables.TunableDouble;
+import frc.lib.lib2706.networktables.TunablePIDConfig;
+import frc.lib.lib2706.networktables.TunableSimpleFeedforward;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
+
+import static frc.lib.lib2706.networktables.NTUtil.doublePubFast;
 
 import java.util.ArrayList;
 

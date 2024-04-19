@@ -25,10 +25,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import frc.lib.lib2706.AdvantageUtil;
 import frc.lib.lib2706.GeomUtil;
-import frc.lib.lib2706.NTUtil;
+import frc.lib.lib2706.networktables.AdvantageUtil;
+import frc.lib.lib2706.networktables.NTUtil;
 import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
 import frc.robot.Config.CANID;

@@ -1,4 +1,4 @@
-package frc.lib.lib2706;
+package frc.lib.lib2706.networktables;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.networktables.NetworkTable;

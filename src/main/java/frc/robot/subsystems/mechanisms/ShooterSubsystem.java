@@ -21,7 +21,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.ErrorCheck;
-import frc.lib.lib2706.TunableDouble;
+import frc.lib.lib2706.networktables.TunableDouble;
 import frc.robot.Config;
 import frc.robot.Config.NTConfig;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;

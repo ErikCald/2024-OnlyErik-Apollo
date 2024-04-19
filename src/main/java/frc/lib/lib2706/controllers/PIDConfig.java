@@ -1,4 +1,4 @@
-package frc.lib.lib2706;
+package frc.lib.lib2706.controllers;
 
 /**
  * The PIDConfig class represents the configuration parameters for a PID controller.

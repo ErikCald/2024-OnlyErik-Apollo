@@ -1,4 +1,4 @@
-package frc.lib.lib2706;
+package frc.lib.lib2706.button;
 
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;

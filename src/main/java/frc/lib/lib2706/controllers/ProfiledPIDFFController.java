@@ -1,4 +1,4 @@
-package frc.lib.lib2706;
+package frc.lib.lib2706.controllers;
 
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
