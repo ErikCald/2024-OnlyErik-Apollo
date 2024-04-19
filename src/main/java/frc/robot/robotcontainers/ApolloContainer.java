@@ -88,7 +88,7 @@ public class ApolloContainer extends RobotContainer {
             // shooter.setDefaultCommand(new Shooter_PID_Tuner(() -> 0));
         }
 
-        configureButtonBindings();
+        // configureButtonBindings();
 
         // Setup auto
         m_autoRoutines = new AutoRoutines();

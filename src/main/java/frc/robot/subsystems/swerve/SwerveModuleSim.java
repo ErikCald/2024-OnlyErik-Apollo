@@ -47,6 +47,8 @@ public class SwerveModuleSim extends SwerveModuleAbstract {
 
         m_driveBrakeMode = SwerveConfig.driveIdleMode == IdleMode.kBrake;
         m_steerBrakeMode = SwerveConfig.steerIdleMode == IdleMode.kBrake;
+
+        SwerveModuleAbstract.setupTunableValues(this);
     }
 
     /**

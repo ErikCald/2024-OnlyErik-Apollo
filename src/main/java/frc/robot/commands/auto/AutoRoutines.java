@@ -14,12 +14,13 @@ import frc.robot.commands.IntakeControl;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 public class AutoRoutines extends SubsystemBase {
-    PathPlannerAuto demoAuto;
+    PathPlannerAuto testingAutoSCurve, testingAutoStraight;
 
     public AutoRoutines() {
         registerCommandsToPathplanner();
 
-        demoAuto = new PathPlannerAuto("TestingAuto");
+        testingAutoStraight = new PathPlannerAuto("TestingAutoLine");
+        testingAutoSCurve = new PathPlannerAuto("TestingAutoSCurve");
     }
 
     public void registerCommandsToPathplanner() {
@@ -32,10 +33,13 @@ public class AutoRoutines extends SubsystemBase {
             case 0:
                 return new InstantCommand();
 
-            case 1:
-                return demoAuto;
-
             case 2:
+                return testingAutoStraight;
+
+            case 3:
+                return testingAutoSCurve;
+
+            case 1:
                 return Commands.run(
                         () ->
                                 SwerveSubsystem.getInstance()

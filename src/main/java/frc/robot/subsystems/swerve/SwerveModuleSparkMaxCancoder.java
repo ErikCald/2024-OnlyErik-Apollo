@@ -66,6 +66,9 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         driveController = driveMotor.getPIDController();
         configDriveMotor();
 
+        /* Setup tunable values. This will set the PIDF values for both the drive and steer */
+        SwerveModuleAbstract.setupTunableValues(this);
+
         /* Register CANSparkMaxs to log fault codes */
         ErrorTrackingSubsystem.getInstance().register(steerMotor, driveMotor);
 
@@ -191,7 +194,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         errSpark("Steer set P", steerController.setP(pid.kP, pid.pidSlot));
         errSpark("Steer set I", steerController.setI(pid.kI, pid.pidSlot));
         errSpark("Steer set D", steerController.setD(pid.kD, pid.pidSlot));
-        errSpark("Steer set FF", steerController.setFF(pid.kF, pid.pidSlot));
+        errSpark("Steer set FF", steerController.setFF(0, pid.pidSlot));
         errSpark("Steer update iZone", steerController.setIZone(pid.iZone, pid.pidSlot));
     }
 

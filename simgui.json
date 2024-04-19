@@ -10,9 +10,6 @@
   },
   "NetworkTables": {
     "transitory": {
-      "SelectAuto": {
-        "open": true
-      },
       "Shuffleboard": {
         "ArmDisplay": {
           "ArmDisplayMech": {
@@ -20,6 +17,18 @@
           },
           "open": true
         }
+      },
+      "Swerve": {
+        "Drive": {
+          "TunePID": {
+            "open": true
+          },
+          "TuneSimpleFF": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
       },
       "SwerveChassis": {
         "double[]##v_/SwerveChassis/Pose ": {

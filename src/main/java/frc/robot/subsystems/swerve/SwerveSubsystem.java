@@ -37,7 +37,6 @@ import frc.robot.Config.NTConfig;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
-import frc.robot.Robot;
 
 import java.util.Optional;
 
@@ -134,9 +133,9 @@ public class SwerveSubsystem extends SubsystemBase {
                 // RELATIVE ChassisSpeeds
                 new HolonomicPathFollowerConfig( // HolonomicPathFollowerConfig, this should likely
                         // live in your Constants class
-                        new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants kP = 5.0
-                        new PIDConstants(5.0, 0.0, 0.0), // Rotation PID constants kP = 5.0
-                        3.0, // Max module speed, in m/s
+                        new PIDConstants(10.0, 0.0, 0.0), // Translation PID constants kP = 5.0
+                        new PIDConstants(10.0, 0.0, 0.0), // Rotation PID constants kP = 5.0
+                        SwerveConfig.maxSpeed, // Max module speed, in m/s
                         0.4, // Drive base radius in meters. Distance from robot center to furthest
                         // module.
                         new ReplanningConfig() // Default path replanning config. See the API for
@@ -177,7 +176,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
         pubPoseX = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseX (m)");
         pubPoseY = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseY (m)");
-        pubPoseRot = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseRot (m)");
+        pubPoseRot = NTUtil.doublePubFast(NTConfig.swerveTable, "PoseRot (deg)");
         pubGyroRate = NTUtil.doublePubFast(NTConfig.swerveTable, "GyroRate (degps)");
 
         pubMeasVelX = NTUtil.doublePubFast(directPIDTable, "MeasuredVelX (mps)");
@@ -207,19 +206,14 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param isOpenLoop True to use open-loop control, or false for closed loop control of the swerve modules.
      */
     public void drive(ChassisSpeeds speeds, boolean fieldRelative, boolean isOpenLoop) {
-        if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
-            double addRadians = speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs;
-            m_simHeading = m_simHeading.plus(new Rotation2d(addRadians));
+        if (fieldRelative) {
+            speeds = ChassisSpeeds.fromFieldRelativeSpeeds(speeds, getHeading());
         }
 
+        speeds = ChassisSpeeds.discretize(speeds, SwerveConfig.discretizePeriodSecs);
+
         SwerveModuleState[] swerveModuleStates =
-                Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(
-                        ChassisSpeeds.discretize(
-                                fieldRelative
-                                        ? ChassisSpeeds.fromFieldRelativeSpeeds(
-                                                speeds, getHeading())
-                                        : speeds,
-                                0.02));
+                Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(speeds);
 
         SwerveDriveKinematics.desaturateWheelSpeeds(
                 swerveModuleStates, Config.SwerveConfig.maxSpeed);
@@ -301,7 +295,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return The yaw rotation as a Rotation2d object.
      */
     private Rotation2d getYaw() {
-        if (Robot.isSimulation()) {
+        if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
             return m_simHeading;
         }
         return m_gyro.getRotation2d();
@@ -456,12 +450,17 @@ public class SwerveSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        ChassisSpeeds fieldSpeeds = getFieldRelativeSpeeds();
         SwerveModulePosition[] positions = getPositions();
         SwerveModuleState[] states = getStates();
-        pubMeasuredStates.accept(AdvantageUtil.deconstructSwerveModuleState(states));
 
         for (SwerveModuleAbstract mod : m_modules) {
             mod.periodic();
+        }
+
+        if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
+            double addRadians = fieldSpeeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs;
+            m_simHeading = m_simHeading.plus(new Rotation2d(addRadians));
         }
 
         m_odometry.update(getYaw(), positions);
@@ -487,12 +486,12 @@ public class SwerveSubsystem extends SubsystemBase {
         pubPoseY.accept(getPose().getY());
         pubEstimatedPose.accept(AdvantageUtil.deconstruct(getPose()));
 
+        pubMeasuredStates.accept(AdvantageUtil.deconstructSwerveModuleState(states));
         pubGyroRate.accept(getAngularRate());
 
-        ChassisSpeeds speeds = getFieldRelativeSpeeds();
-        pubMeasVelX.accept(speeds.vxMetersPerSecond);
-        pubMeasVelY.accept(speeds.vyMetersPerSecond);
-        pubMeasVelRot.accept(Math.toDegrees(speeds.omegaRadiansPerSecond));
+        pubMeasVelX.accept(fieldSpeeds.vxMetersPerSecond);
+        pubMeasVelY.accept(fieldSpeeds.vyMetersPerSecond);
+        pubMeasVelRot.accept(Math.toDegrees(fieldSpeeds.omegaRadiansPerSecond));
     }
 
     /**

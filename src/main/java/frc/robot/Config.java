@@ -331,7 +331,7 @@ public final class Config {
     }
 
     public static final class SwerveConfig {
-        public static final boolean invertGyro = false; // Always ensure Gyro is CCW+ CW-
+        public static final int numSwerveModules = 4;
 
         public static final double trackWidth = Units.inchesToMeters(25.787);
         public static final double wheelBase = Units.inchesToMeters(20.472);
@@ -342,6 +342,7 @@ public final class Config {
         public static final double driveGearRatio = (8.14 / 1.0);
         public static final double steerGearRatio = (12.8 / 1.0);
 
+        public static final double discretizePeriodSecs = GeneralConfig.loopPeriodSecs * robotSpecific(1.0, 3.0); // 0.02 * fudgeFactor
         public static final double syncMetersTol = Math.toRadians(1);
         public static final double syncMPSTol = 1;
         public static final double syncRadTol = Math.toRadians(1);
@@ -362,22 +363,22 @@ public final class Config {
         public static final int driveContinuousCurrentLimit = 50;
 
         /* Steer Motor PID Values, Changed */
-        public static final double steerKP = 2.0;
-        public static final double steerKI = 0.0;
-        public static final double steerKD = 0.1;
-        public static final double steerIZone = 0.0;
+        public static final double steerKP = robotSpecific(2.0, 30.0);
+        public static final double steerKI = robotSpecific(0.0, 0.0);
+        public static final double steerKD = robotSpecific(0.1, 0.0);
+        public static final double steerIZone = robotSpecific(0.0, 0.0);
 
         /* Drive Motor PID Values, Changed*/
-        public static final double driveKP = 0.2;
-        public static final double driveKI = 0.0;
-        public static final double driveKD = 0.0;
-        public static final double driveKFF = 0.0;
-        public static final double driveIZone = 0.0;
+        public static final double driveKP = robotSpecific(0.2, 10.0);
+        public static final double driveKI = robotSpecific(0.0, 0.0);
+        public static final double driveKD = robotSpecific(0.0, 0.0);
+        public static final double driveKFF = robotSpecific(0.0, 0.0);
+        public static final double driveIZone = robotSpecific(0.0, 0.0);
 
         /* Drive Motor Characterization Values Changed */
-        public static final double driveKS = 0.667; // Volts for static friction
-        public static final double driveKV = 4.0; // Volts per mps
-        public static final double driveKA = 0.5; // Volts per mps^2 (NOT USED)
+        public static final double driveKS = robotSpecific(0.667, 0.4); // Volts for static friction
+        public static final double driveKV = robotSpecific(4.0, 3.1); // Volts per mps
+        public static final double driveKA = robotSpecific(0.5, 0.0); // Volts per mps^2 (NOT USED)
 
         public static final double driveVelAllowableError = 0.001; // mps
         public static final double steerPosAllowableError = Math.toRadians(0.01);
@@ -414,7 +415,7 @@ public final class Config {
             }
         }
 
-        public static final double maxSpeed = 3.0; // meters per second
+        public static final double maxSpeed = 4.0; // meters per second
         public static final double maxAngularVelocity = Math.PI * 3.0;
 
         /* Neutral Modes */

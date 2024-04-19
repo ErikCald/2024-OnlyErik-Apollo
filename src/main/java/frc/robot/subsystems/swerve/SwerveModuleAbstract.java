@@ -30,7 +30,7 @@ import java.util.ArrayList;
  */
 public abstract class SwerveModuleAbstract {
     private static ArrayList<SwerveModuleAbstract> s_modules = new ArrayList<>();
-    protected static boolean s_hasSetup = false;
+    private static int s_modulesInitialized = 0;
     protected static NetworkTable s_driveTable, s_steerTable;
     protected static SimpleMotorFeedforward s_driveFF;
     private static TunableSimpleFeedforward s_tunableDriveFF;
@@ -50,12 +50,6 @@ public abstract class SwerveModuleAbstract {
      * It provides common functionality and properties for swerve modules.
      */
     protected SwerveModuleAbstract(SwerveModuleConstants constants, String name) {
-        /* Register modules to update pid controllers */
-        s_modules.add(this);
-
-        /* Single Time Setup */
-        moduleSingleTimeSetup();
-
         /* Networktable Setup */
         m_name = name;
         moduleTable = NTConfig.swerveTable.getSubTable("SwerveModule" + name);
@@ -75,16 +69,13 @@ public abstract class SwerveModuleAbstract {
                         "Angle Offset (deg)", moduleTable, constants.steerOffset.getDegrees());
     }
 
-    /**
-     * Performs the one-time setup for the swerve module.
-     * This method initializes the necessary network tables, feedforwards, and PID configurations.
-     * It is called only once during the initialization of the swerve modules.
-     */
-    private static void moduleSingleTimeSetup() {
-        if (s_hasSetup) {
+    public static void setupTunableValues(SwerveModuleAbstract module) {
+        /* Add the module to the list so the tunable values can be updated */
+        s_modules.add(module);
+
+        /* Only setup general module values once all modules have been created */
+        if (++s_modulesInitialized != SwerveConfig.numSwerveModules) {
             return;
-        } else {
-            s_hasSetup = true;
         }
 
         /* Setup NT Tables */
