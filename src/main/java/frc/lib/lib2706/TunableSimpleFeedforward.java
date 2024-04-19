@@ -5,12 +5,12 @@ import edu.wpi.first.networktables.NetworkTable;
 
 import java.util.function.Consumer;
 
-public class TunableSimpleMotorFeedforward {
+public class TunableSimpleFeedforward {
     private final TunableDouble m_kS, m_kV, m_kA;
     private Consumer<SimpleMotorFeedforward> m_setFeedforward;
 
     /**
-     * Create a UpdateFeedforward to update a {@link SimpleMotorFeedforward} object from networktables.
+     * Create a checkForUpdates to update a {@link SimpleMotorFeedforward} object from networktables.
      *
      * @param setFeedforward A consumer to recieve an updated SimpleMotorFeedforward. Recommend: {@snippet (ff) -> m_topFF = ff}
      * @param tableName The table name to put the 3 entries in for kS, kV and kA
@@ -18,7 +18,7 @@ public class TunableSimpleMotorFeedforward {
      * @param kV The default value for kV
      * @param kA The default value for kA
      */
-    public TunableSimpleMotorFeedforward(
+    public TunableSimpleFeedforward(
             Consumer<SimpleMotorFeedforward> setFeedforward,
             NetworkTable table,
             double kS,
@@ -49,7 +49,7 @@ public class TunableSimpleMotorFeedforward {
     /**
      * Updates the feedforward values based on the current tunable doubles.
      */
-    public void updateFeedforward() {
+    public void checkForUpdates() {
         TunableDouble.ifChanged(
                 hashCode(),
                 () -> this.setFeedforward(m_kS.get(), m_kV.get(), m_kA.get()),

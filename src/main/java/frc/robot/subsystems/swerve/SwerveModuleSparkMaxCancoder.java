@@ -2,7 +2,6 @@ package frc.robot.subsystems.swerve;
 
 import static frc.lib.lib2706.ErrorCheck.configureSpark;
 import static frc.lib.lib2706.ErrorCheck.errSpark;
-import static frc.lib.lib2706.NTUtil.createDoublePublisherFast;
 
 import com.revrobotics.CANSparkBase;
 import com.revrobotics.CANSparkBase.ControlType;
@@ -13,23 +12,21 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTable;
 
+import frc.lib.lib2706.PIDConfig;
 import frc.lib.lib2706.TunableDouble;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;
 import frc.lib.libYAGSL.SimplifiedCANCoder;
-import frc.robot.Config.NTConfig;
+import frc.robot.Config.CANID;
 import frc.robot.Config.SwerveConfig;
 import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
 
-public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
+public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
     private CANSparkMax steerMotor, driveMotor;
 
     private RelativeEncoder driveEncoder;
@@ -38,17 +35,6 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
 
     private SparkPIDController driveController;
     private SparkPIDController steerController;
-
-    private SimpleMotorFeedforward feedforward =
-            new SimpleMotorFeedforward(
-                    SwerveConfig.driveKS, SwerveConfig.driveKV, SwerveConfig.driveKA);
-
-    private NetworkTable moduleTable;
-    private DoublePublisher pubMeasuredSpeed, pubDesiredSpeed, pubSpeedError;
-    private DoublePublisher pubMeasuredAngle, pubDesiredAngle, pubAngleError;
-    private DoublePublisher pubCancoderAngle;
-
-    private TunableDouble tunableSteerOffset;
 
     /**
      * Represents a Swerve Module with SparkMax motor controllers and CANCoder for steering feedback.
@@ -59,6 +45,8 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
      * @param moduleName The name of the swerve module.
      */
     public SwerveModuleSparkMaxCancoder(SwerveModuleConstants moduleConstants, String moduleName) {
+        super(moduleConstants, moduleName);
+
         /* Steer Encoder Config */
         steerCancoder =
                 new SimplifiedCANCoder(moduleConstants.cancoderCanID, moduleName + " CANCoder");
@@ -75,25 +63,6 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
         driveEncoder = driveMotor.getEncoder();
         driveController = driveMotor.getPIDController();
         configDriveMotor();
-
-        /* Networktable Setup */
-        moduleTable = NTConfig.swerveTable.getSubTable("SwerveModule" + moduleName);
-
-        pubMeasuredSpeed = createDoublePublisherFast(moduleTable, "Measured Speed (mps)");
-        pubDesiredSpeed = createDoublePublisherFast(moduleTable, "Desired Speed (mps)");
-        pubSpeedError = createDoublePublisherFast(moduleTable, " Speed Error (mps)");
-
-        pubMeasuredAngle = createDoublePublisherFast(moduleTable, "Measured Angle (deg)");
-        pubDesiredAngle = createDoublePublisherFast(moduleTable, "Desired Angle (deg)");
-        pubAngleError = createDoublePublisherFast(moduleTable, "Angle Error (deg)");
-
-        pubCancoderAngle = createDoublePublisherFast(moduleTable, "Cancoder Angle (deg)");
-
-        tunableSteerOffset =
-                new TunableDouble(
-                        "Angle Offset (deg)",
-                        moduleTable,
-                        moduleConstants.steerOffset.getDegrees());
 
         /* Register CANSparkMaxs to log fault codes */
         ErrorTrackingSubsystem.getInstance().register(steerMotor, driveMotor);
@@ -118,7 +87,10 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
      * Configures the steer motor
      */
     private void configSteerMotor() {
+        configureSpark("Steer can timeout", () -> steerMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
         configureSpark("Steer restore factory defaults", () -> steerMotor.restoreFactoryDefaults());
+        configureSpark(
+                "Steer set can blocking", () -> steerMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
         CANSparkMaxUtil.setCANSparkMaxBusUsage(steerMotor, Usage.kAll);
         configureSpark(
                 "Steer current limit",
@@ -149,13 +121,17 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
         configureSpark(
                 "Steer enable Volatage Compensation",
                 () -> steerMotor.enableVoltageCompensation(SwerveConfig.steerVoltComp));
+        configureSpark("Steer set can nonblocking", () -> steerMotor.setCANTimeout(0));
     }
 
     /*
      * Config the drive motor
      */
     private void configDriveMotor() {
-        configureSpark("Drive factory defaults", () -> driveMotor.restoreFactoryDefaults());
+        configureSpark("Drive can timeout", () -> driveMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
+        configureSpark("Drive restore factory defaults", () -> driveMotor.restoreFactoryDefaults());
+        configureSpark(
+                "Drive set can blocking", () -> driveMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
         CANSparkMaxUtil.setCANSparkMaxBusUsage(driveMotor, Usage.kAll);
         configureSpark(
                 "Drive smart current limit",
@@ -192,6 +168,32 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
     }
 
     /**
+     * Updates the PID configuration for the drive controller.
+     *
+     * @param pid The PIDConfig object containing the new PID values.
+     */
+    protected void updateDrivePID(PIDConfig pid) {
+        errSpark("Drive set P", driveController.setP(pid.kP, pid.pidSlot));
+        errSpark("Drive set I", driveController.setI(pid.kI, pid.pidSlot));
+        errSpark("Drive set D", driveController.setD(pid.kD, pid.pidSlot));
+        errSpark("Drive set FF", driveController.setFF(pid.kF, pid.pidSlot));
+        errSpark("Drive update iZone", driveController.setIZone(pid.iZone, pid.pidSlot));
+    }
+
+    /**
+     * Updates the PID configuration for the steer controller.
+     *
+     * @param pid The PID configuration to update.
+     */
+    protected void updateSteerPID(PIDConfig pid) {
+        errSpark("Steer set P", steerController.setP(pid.kP, pid.pidSlot));
+        errSpark("Steer set I", steerController.setI(pid.kI, pid.pidSlot));
+        errSpark("Steer set D", steerController.setD(pid.kD, pid.pidSlot));
+        errSpark("Steer set FF", steerController.setFF(pid.kF, pid.pidSlot));
+        errSpark("Steer update iZone", steerController.setIZone(pid.iZone, pid.pidSlot));
+    }
+
+    /**
      * Resets the steer encoder position to the absolute position of the CanCoder.
      */
     @Override
@@ -222,16 +224,6 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
     }
 
     /**
-     * Sets the feedforward value for the swerve module.
-     *
-     * @param newFeedforward the new feedforward value to be set
-     */
-    @Override
-    public void setFeedforward(SimpleMotorFeedforward newFeedforward) {
-        feedforward = newFeedforward;
-    }
-
-    /**
      * Sets the speed of the swerve module based on the desired state.
      *
      * @param desiredState The desired state of the swerve module.
@@ -248,7 +240,7 @@ public class SwerveModuleSparkMaxCancoder implements SwerveModuleInterface {
             errSpark(
                     "Drive set FF",
                     driveController.setReference(
-                            speed, ControlType.kVelocity, 0, feedforward.calculate(speed)));
+                            speed, ControlType.kVelocity, 0, s_driveFF.calculate(speed)));
         }
     }
 

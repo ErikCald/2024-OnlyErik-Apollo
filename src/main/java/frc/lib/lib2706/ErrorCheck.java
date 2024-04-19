@@ -57,11 +57,11 @@ public class ErrorCheck {
     /**
      * Configure a SparkMax setting multiple times until it succeeds.
      *
-     * @param message A simple and short identifying message.
+     * @param msg A simple and short identifying message.
      * @param config The Supplier to call to configure which returns a REVLibError.
      * @return true for success, false for failure.
      */
-    public static boolean configureSpark(String message, Supplier<REVLibError> config) {
+    public static boolean configureSpark(String msg, Supplier<REVLibError> config) {
         REVLibError err = REVLibError.kOk;
         for (int i = 0; i < MAXIMUM_RETRIES; i++) {
             err = config.get();
@@ -70,11 +70,11 @@ public class ErrorCheck {
             }
         }
 
-        String msg =
-                "[MergeError] - CANSparkMax failed to configure setting. MergeMessage:" + message;
-        msg += " Spark error code: " + err.toString() + " \nSee stack trace below.";
+        String message =
+                "[MergeError] - CANSparkMax failed to configure setting. MergeMessage:" + msg;
+        message += " Spark error code: " + err.toString() + " \nSee stack trace below.";
 
-        DriverStation.reportError(msg, PRINT_STACK_TRACE_CONFIGURE);
+        DriverStation.reportError(message, PRINT_STACK_TRACE_CONFIGURE);
 
         return false;
     }

@@ -363,12 +363,14 @@ public final class Config {
         public static final double steerKP = 2.0;
         public static final double steerKI = 0.0;
         public static final double steerKD = 0.1;
+        public static final double steerIZone = 0.0;
 
         /* Drive Motor PID Values, Changed*/
         public static final double driveKP = 0.2;
         public static final double driveKI = 0.0;
         public static final double driveKD = 0.0;
         public static final double driveKFF = 0.0;
+        public static final double driveIZone = 0.0;
 
         /* Drive Motor Characterization Values Changed */
         public static final double driveKS = 0.667; // Volts for static friction

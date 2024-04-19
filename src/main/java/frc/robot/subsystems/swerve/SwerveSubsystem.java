@@ -8,7 +8,6 @@ import com.pathplanner.lib.util.ReplanningConfig;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -31,17 +30,15 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.AdvantageUtil;
 import frc.lib.lib2706.GeomUtil;
-import frc.lib.lib2706.TunableSimpleMotorFeedforward;
 import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
-import frc.robot.Robot;
 import frc.robot.Config.CANID;
 import frc.robot.Config.GeneralConfig;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
+import frc.robot.Robot;
 
-import java.sql.Driver;
 import java.util.Optional;
 
 public class SwerveSubsystem extends SubsystemBase {
@@ -49,7 +46,7 @@ public class SwerveSubsystem extends SubsystemBase {
     private Rotation2d simHeading = new Rotation2d();
 
     private SwerveDriveOdometry swerveOdometry;
-    private SwerveModuleInterface[] mSwerveMods;
+    private SwerveModuleAbstract[] mSwerveMods;
     String tableName = "SwerveChassis";
     private NetworkTable swerveTable = NetworkTableInstance.getDefault().getTable(tableName);
     private DoublePublisher pubCurrentAngle =
@@ -64,11 +61,12 @@ public class SwerveSubsystem extends SubsystemBase {
                     .publish(PubSubOption.periodic(0.02));
     private DoubleArrayPublisher pubCurrentPose =
             swerveTable.getDoubleArrayTopic("Pose ").publish(PubSubOption.periodic(0.02));
-    private TunableSimpleMotorFeedforward tunableSimpleFF;
     private DoublePublisher pubGyroRate =
             swerveTable.getDoubleTopic("Gyro Rate (degps)").publish(PubSubOption.periodic(0.02));
-    private DoubleArrayPublisher pubDesiredStates = swerveTable.getDoubleArrayTopic("DesiredStates").publish(PubSubOption.periodic(0.02));
-    private DoubleArrayPublisher pubMeasuredStates = swerveTable.getDoubleArrayTopic("MeasuredStates").publish(PubSubOption.periodic(0.02));
+    private DoubleArrayPublisher pubDesiredStates =
+            swerveTable.getDoubleArrayTopic("DesiredStates").publish(PubSubOption.periodic(0.02));
+    private DoubleArrayPublisher pubMeasuredStates =
+            swerveTable.getDoubleArrayTopic("MeasuredStates").publish(PubSubOption.periodic(0.02));
 
     private NetworkTable visionPidTable = swerveTable.getSubTable("VisionPid");
     private DoublePublisher pubMeasuredSpeedX =
@@ -129,7 +127,7 @@ public class SwerveSubsystem extends SubsystemBase {
             default:
             case APOLLO:
                 mSwerveMods =
-                        new SwerveModuleInterface[] {
+                        new SwerveModuleAbstract[] {
                             new SwerveModuleSparkMaxCancoder(
                                     Config.SwerveConfig.Mod0.constants, "FL"),
                             new SwerveModuleSparkMaxCancoder(
@@ -143,7 +141,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
             case SIMULATION:
                 mSwerveMods =
-                        new SwerveModuleInterface[] {
+                        new SwerveModuleAbstract[] {
                             new SwerveModuleSim(Config.SwerveConfig.Mod0.constants, "FL"),
                             new SwerveModuleSim(Config.SwerveConfig.Mod1.constants, "FR"),
                             new SwerveModuleSim(Config.SwerveConfig.Mod2.constants, "BL"),
@@ -211,14 +209,6 @@ public class SwerveSubsystem extends SubsystemBase {
         pidControlX.setIZone(0.3);
         pidControlY.setIZone(0.3);
         pidControlRotation.setIZone(Math.toRadians(3));
-
-        tunableSimpleFF =
-                new TunableSimpleMotorFeedforward(
-                        (ff) -> updateModuleFeedforward(ff),
-                        swerveTable,
-                        Config.SwerveConfig.driveKS,
-                        Config.SwerveConfig.driveKV,
-                        Config.SwerveConfig.driveKA);
     }
 
     public void drive(
@@ -230,20 +220,30 @@ public class SwerveSubsystem extends SubsystemBase {
                 flipForAlliance ? GeomUtil.rotateForAlliance(getHeading()) : getHeading();
 
         if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
-            System.out.println("Speeds: " + Math.toDegrees(speeds.omegaRadiansPerSecond) + ", Angle: " + Math.toDegrees(speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
-            gyro.setFusedHeading(gyro.getFusedHeading() + 
-                    Math.toDegrees(speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+            System.out.println(
+                    "Speeds: "
+                            + Math.toDegrees(speeds.omegaRadiansPerSecond)
+                            + ", Angle: "
+                            + Math.toDegrees(
+                                    speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+            gyro.setFusedHeading(
+                    gyro.getFusedHeading()
+                            + Math.toDegrees(
+                                    speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
 
-            simHeading = simHeading.plus(new Rotation2d(speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
+            simHeading =
+                    simHeading.plus(
+                            new Rotation2d(
+                                    speeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs));
         }
 
         SwerveModuleState[] swerveModuleStates =
                 Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(
                         // ChassisSpeeds.discretize(
-                                fieldRelative
-                                        ? ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading)
-                                        : speeds);
-                                // 0.02));
+                        fieldRelative
+                                ? ChassisSpeeds.fromFieldRelativeSpeeds(speeds, heading)
+                                : speeds);
+        // 0.02));
         SwerveDriveKinematics.desaturateWheelSpeeds(
                 swerveModuleStates, Config.SwerveConfig.maxSpeed);
         pubDesiredStates.accept(AdvantageUtil.deconstructSwerveModuleState(swerveModuleStates));
@@ -296,12 +296,6 @@ public class SwerveSubsystem extends SubsystemBase {
         }
 
         return positions;
-    }
-
-    public void updateModuleFeedforward(SimpleMotorFeedforward ff) {
-        for (SwerveModuleInterface mod : mSwerveMods) {
-            mod.setFeedforward(ff);
-        }
     }
 
     private Rotation2d getYaw() {
@@ -441,7 +435,7 @@ public class SwerveSubsystem extends SubsystemBase {
         SwerveModuleState[] states = getStates();
         pubMeasuredStates.accept(AdvantageUtil.deconstructSwerveModuleState(states));
 
-        for (SwerveModuleInterface mod : mSwerveMods) {
+        for (SwerveModuleAbstract mod : mSwerveMods) {
             mod.periodic();
         }
 
@@ -465,7 +459,7 @@ public class SwerveSubsystem extends SubsystemBase {
         poseBuffer.addPoseToBuffer(getPose());
 
         // Check if the feedforward has been updated on NT
-        tunableSimpleFF.updateFeedforward();
+        tunableSimpleFF.checkForUpdates();
 
         pubCurrentAngle.accept(getPose().getRotation().getDegrees());
         pubCurrentPositionX.accept(getPose().getX());
@@ -509,7 +503,7 @@ public class SwerveSubsystem extends SubsystemBase {
 
     public boolean isChassisMoving(double velToleranceMPS) {
         double sumVelocity = 0;
-        for (SwerveModuleInterface mod : mSwerveMods) {
+        for (SwerveModuleAbstract mod : mSwerveMods) {
             sumVelocity += Math.abs(mod.getState().speedMetersPerSecond);
         }
 
@@ -530,7 +524,7 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     public boolean isSwerveNotSynched() {
-        for (SwerveModuleInterface module : mSwerveMods) {
+        for (SwerveModuleAbstract module : mSwerveMods) {
             if (!module.isModuleSynced()) {
                 return (true);
             }
@@ -539,13 +533,13 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     public void synchSwerve() {
-        for (SwerveModuleInterface module : mSwerveMods) {
+        for (SwerveModuleAbstract module : mSwerveMods) {
             module.resetToAbsolute();
         }
     }
 
     public void stopMotors() {
-        for (SwerveModuleInterface mod : mSwerveMods) {
+        for (SwerveModuleAbstract mod : mSwerveMods) {
             mod.stopMotors();
         }
     }

@@ -8,7 +8,6 @@ import com.revrobotics.CANSparkBase.IdleMode;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -16,18 +15,15 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
-
+import frc.lib.lib2706.PIDConfig;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.robot.Config.GeneralConfig;
 import frc.robot.Config.SwerveConfig;
 
 /** Add your docs here. */
-public class SwerveModuleSim implements SwerveModuleInterface {
-    private final String m_name;
-
+public class SwerveModuleSim extends SwerveModuleAbstract {
     private final DCMotorSim m_driveMotorSim, m_steerMotorSim;
     private final PIDController m_drivePID, m_steerPID;
-    private SimpleMotorFeedforward m_driveFF;
 
     private final Rotation2d m_steerStartingAngle;
     private final SlewRateLimiter m_driveVoltsLimiter = new SlewRateLimiter(2.5);
@@ -35,7 +31,8 @@ public class SwerveModuleSim implements SwerveModuleInterface {
     private boolean m_steerBrakeMode, m_driveBrakeMode;
 
     public SwerveModuleSim(SwerveModuleConstants constants, String name) {
-        m_name = name;
+        super(constants, name);
+
         m_steerStartingAngle = constants.steerOffset;
 
         m_driveMotorSim = new DCMotorSim(DCMotor.getNEO(1), SwerveConfig.driveGearRatio, 0.025);
@@ -46,10 +43,6 @@ public class SwerveModuleSim implements SwerveModuleInterface {
         m_steerPID =
                 new PIDController(SwerveConfig.steerKP, SwerveConfig.steerKI, SwerveConfig.steerKD);
         m_steerPID.enableContinuousInput(-Math.PI, Math.PI);
-
-        m_driveFF =
-                new SimpleMotorFeedforward(
-                        SwerveConfig.driveKS, SwerveConfig.driveKV, SwerveConfig.driveKA);
 
         m_driveBrakeMode = SwerveConfig.driveIdleMode == IdleMode.kBrake;
         m_steerBrakeMode = SwerveConfig.steerIdleMode == IdleMode.kBrake;
@@ -66,6 +59,30 @@ public class SwerveModuleSim implements SwerveModuleInterface {
 
         m_driveMotorSim.update(GeneralConfig.loopPeriodSecs);
         m_steerMotorSim.update(GeneralConfig.loopPeriodSecs);
+
+        pubMeasuredSpeed.accept(getDriveVelocity());
+        pubMeasuredAngle.accept(getAngle().getDegrees());
+        pubCancoderAngle.accept(getAngle().getDegrees());
+    }
+
+    /**
+     * Updates the drive PID controller with the specified PID configuration.
+     *
+     * @param pid The PID configuration to update the drive PID controller with.
+     */
+    protected void updateDrivePID(PIDConfig pid) {
+        m_drivePID.setPID(pid.kP, pid.kI, pid.kD);
+        m_drivePID.setIZone(pid.iZone);
+    }
+
+    /**
+     * Updates the PID parameters for the steering control of the swerve module.
+     *
+     * @param pid The PIDConfig object containing the new PID parameters.
+     */
+    protected void updateSteerPID(PIDConfig pid) {
+        m_steerPID.setPID(pid.kP, pid.kI, pid.kD);
+        m_steerPID.setIZone(pid.iZone);
     }
 
     /**
@@ -84,8 +101,9 @@ public class SwerveModuleSim implements SwerveModuleInterface {
     public void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop) {
         desiredState = SwerveModuleState.optimize(desiredState, getAngle());
 
-        double steerVolts = m_steerPID.calculate(getAngle().getRadians(), desiredState.angle.getRadians());
-        
+        double steerVolts =
+                m_steerPID.calculate(getAngle().getRadians(), desiredState.angle.getRadians());
+
         double driveVolts = 0;
         if (isOpenLoop) {
             driveVolts =
@@ -93,12 +111,9 @@ public class SwerveModuleSim implements SwerveModuleInterface {
                             / SwerveConfig.maxSpeed
                             * SwerveConfig.driveVoltComp;
         } else {
-            double driveAngVel = m_driveMotorSim.getAngularVelocityRadPerSec();
-            double measSpeed = driveAngVel * SwerveConfig.wheelRadius / 2.0;
-
             driveVolts =
-                    m_drivePID.calculate(measSpeed, desiredState.speedMetersPerSecond)
-                            + m_driveFF.calculate(desiredState.speedMetersPerSecond);
+                    m_drivePID.calculate(getDriveVelocity(), desiredState.speedMetersPerSecond)
+                            + s_driveFF.calculate(desiredState.speedMetersPerSecond);
         }
 
         driveVolts =
@@ -113,18 +128,10 @@ public class SwerveModuleSim implements SwerveModuleInterface {
         m_driveMotorSim.setInputVoltage(driveVolts);
         m_steerMotorSim.setInputVoltage(steerVolts);
 
-        if (m_name.equals("FR")) {
-            // System.out.printf("[%s] - Desired: %.1f, Measured: %.1f \n", m_name, desiredState.angle.getDegrees(), getAngle().getDegrees());
-        }
-    }
-
-    /**
-     * Sets the feedforward value for the swerve module.
-     *
-     * @param newFeedforward the new feedforward value to be set
-     */
-    public void setFeedforward(SimpleMotorFeedforward newFeedforward) {
-        m_driveFF = newFeedforward;
+        pubDesiredSpeed.accept(desiredState.speedMetersPerSecond);
+        pubDesiredAngle.accept(desiredState.angle.getDegrees());
+        pubSpeedError.accept(desiredState.speedMetersPerSecond - getDriveVelocity());
+        pubAngleError.accept(desiredState.angle.getDegrees() - getAngle().getDegrees());
     }
 
     /**
@@ -159,6 +166,7 @@ public class SwerveModuleSim implements SwerveModuleInterface {
      *
      * @return The SwerveModuleState object representing the current state.
      */
+    @Override
     public SwerveModuleState getState() {
         return new SwerveModuleState(getDriveVelocity(), getAngle());
     }
@@ -168,6 +176,7 @@ public class SwerveModuleSim implements SwerveModuleInterface {
      *
      * @return the position of the swerve module
      */
+    @Override
     public SwerveModulePosition getPosition() {
         return new SwerveModulePosition(getDrivePosition(), getAngle());
     }
@@ -177,6 +186,7 @@ public class SwerveModuleSim implements SwerveModuleInterface {
      *
      * @return the velocity in radians per second
      */
+    @Override
     public double getSteeringVelocity() {
         return m_steerMotorSim.getAngularVelocityRadPerSec();
     }
@@ -186,6 +196,7 @@ public class SwerveModuleSim implements SwerveModuleInterface {
      *
      * @return true if the module is synchronized, false otherwise
      */
+    @Override
     public boolean isModuleSynced() {
         return false;
     }
@@ -196,6 +207,7 @@ public class SwerveModuleSim implements SwerveModuleInterface {
      * @param drive The idle mode for the drive motor.
      * @param steer The idle mode for the steer motor.
      */
+    @Override
     public void setIdleMode(IdleMode drive, IdleMode steer) {
         m_driveBrakeMode = drive == IdleMode.kBrake;
         m_steerBrakeMode = steer == IdleMode.kBrake;
@@ -204,6 +216,7 @@ public class SwerveModuleSim implements SwerveModuleInterface {
     /**
      * Stops the drive and steer motors of the swerve module.
      */
+    @Override
     public void stopMotors() {
         m_driveMotorSim.setInputVoltage(0);
         m_steerMotorSim.setInputVoltage(0);
