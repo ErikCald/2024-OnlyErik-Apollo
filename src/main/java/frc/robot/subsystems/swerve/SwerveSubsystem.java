@@ -7,6 +7,7 @@ import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -25,9 +26,13 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+import frc.lib.lib254.SwerveSetpoint;
+import frc.lib.lib254.SwerveSetpointGenerator;
 import frc.lib.lib2706.GeomUtil;
 import frc.lib.lib2706.networktables.AdvantageUtil;
 import frc.lib.lib2706.networktables.NTUtil;
+import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
 import frc.robot.Config.CANID;
@@ -36,6 +41,7 @@ import frc.robot.Config.NTConfig;
 import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
+import frc.robot.Config.SwerveConfig.ModuleLimits;
 
 import java.util.Optional;
 
@@ -46,6 +52,10 @@ public class SwerveSubsystem extends SubsystemBase {
     private final WPI_PigeonIMU m_gyro;
     private Rotation2d m_simHeading = new Rotation2d();
 
+    private final SwerveSetpointGenerator m_setpointGenerator;
+    private SwerveSetpoint m_currentSetpoint = new SwerveSetpoint(SwerveConfig.numSwerveModules);
+    private ModuleLimits m_moduleLimits = ModuleLimits.TELEOP_FAST;
+
     private final SwerveDriveOdometry m_odometry;
     private final SwerveModuleAbstract[] m_modules;
     private final PoseBuffer m_poseBuffer;
@@ -53,6 +63,8 @@ public class SwerveSubsystem extends SubsystemBase {
 
     private NetworkTable directPIDTable = NTConfig.swerveTable.getSubTable("DirectPID");
     private final ProfiledPIDController m_pidX, m_pidY, m_pidRot;
+    private final PIDController m_holdHeadingPid;
+    private double lastHeadingRadians = 0;
     private Pose2d m_desiredPose = null;
 
     private final DoubleArrayPublisher pubEstimatedPose, pubDesiredStates, pubMeasuredStates;
@@ -60,7 +72,10 @@ public class SwerveSubsystem extends SubsystemBase {
     private final DoublePublisher pubVelSetpointX, pubVelSetpointY, pubVelSetpointRot;
     private final DoublePublisher pubMeasVelX, pubMeasVelY, pubMeasVelRot;
     private final DoublePublisher pubDesiredX, pubDesiredY, pubDesiredRot;
+    private final DoublePublisher pubVelCmdX, pubVelCmdY, pubVelCmdRot;
     private final IntegerEntry pubNumSyncs;
+
+    private final TunableDouble tunableHeadingkP;
 
     private static SwerveSubsystem instance;
 
@@ -116,6 +131,10 @@ public class SwerveSubsystem extends SubsystemBase {
                 throw new UnsupportedOperationException("Beetle does not support swerve.");
         }
 
+        m_setpointGenerator =
+                new SwerveSetpointGenerator(
+                        SwerveConfig.swerveKinematics, SwerveConfig.moduleLocations);
+
         m_odometry =
                 new SwerveDriveOdometry(
                         Config.SwerveConfig.swerveKinematics,
@@ -128,7 +147,7 @@ public class SwerveSubsystem extends SubsystemBase {
                 this::resetOdometry, // Method to reset odometry (will be called if your auto
                 // has a starting pose)
                 this::getRobotRelativeSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                this::driveRobotRelative, // Method that will drive the robot given ROBOT
+                this::drivePathPlanner, // Method that will drive the robot given ROBOT
                 // RELATIVE ChassisSpeeds
                 new HolonomicPathFollowerConfig( // HolonomicPathFollowerConfig, this should likely
                         // live in your Constants class
@@ -157,6 +176,11 @@ public class SwerveSubsystem extends SubsystemBase {
 
         m_poseBuffer = new PoseBuffer();
 
+        /* Setup tunable constants */
+        tunableHeadingkP =
+                new TunableDouble(
+                        "HoldHeadingkP", NTConfig.swerveTable, SwerveConfig.holdHeadingkP);
+
         Constraints xyConstraints = new Constraints(2.5, 4.5);
         Constraints rotConstraints = new Constraints(8 * Math.PI, 8 * Math.PI);
         m_pidX = new ProfiledPIDController(9, 0.5, 0.2, xyConstraints);
@@ -167,6 +191,11 @@ public class SwerveSubsystem extends SubsystemBase {
         m_pidX.setIZone(0.3);
         m_pidY.setIZone(0.3);
         m_pidRot.setIZone(Math.toRadians(3));
+
+        /* PID to hold the heading stable */
+        m_holdHeadingPid = new PIDController(tunableHeadingkP.get(), 0, 0);
+        m_holdHeadingPid.enableContinuousInput(-Math.PI, Math.PI);
+        lastHeadingRadians = getHeading().getRadians();
 
         /* Setup NetworkTables */
         pubEstimatedPose = NTUtil.doubleArrayPubFast(NTConfig.swerveTable, "EstimatedPose");
@@ -181,6 +210,10 @@ public class SwerveSubsystem extends SubsystemBase {
         pubMeasVelX = NTUtil.doublePubFast(directPIDTable, "MeasuredVelX (mps)");
         pubMeasVelY = NTUtil.doublePubFast(directPIDTable, "MeasuredVelY (mps)");
         pubMeasVelRot = NTUtil.doublePubFast(directPIDTable, "MeasuredVelRot (degps)");
+
+        pubVelCmdX = NTUtil.doublePubFast(directPIDTable, "VelCommandedX (mps)");
+        pubVelCmdY = NTUtil.doublePubFast(directPIDTable, "VelCommandedY (mps)");
+        pubVelCmdRot = NTUtil.doublePubFast(directPIDTable, "VelCommandedRot (degps)");
 
         // Direct PID NT values
         pubVelSetpointX = NTUtil.doublePubFast(directPIDTable, "VelSetpointX (mps)");
@@ -211,20 +244,49 @@ public class SwerveSubsystem extends SubsystemBase {
 
         speeds = ChassisSpeeds.discretize(speeds, SwerveConfig.discretizePeriodSecs);
 
-        SwerveModuleState[] swerveModuleStates =
-                Config.SwerveConfig.swerveKinematics.toSwerveModuleStates(speeds);
+        // Heading correction to hold the heading stable when we don't want it to rotate
+        // Originally made by Team 1466 Webb Robotics.
+        // Modified by Team 7525 Pioneers and BoiledBurntBagel of 6036
+        if (SwerveConfig.enableHeadingCorrection) {
+            boolean dontWantToRotate =
+                    Math.abs(speeds.omegaRadiansPerSecond) < SwerveConfig.headingCorrectionDeadband;
+            boolean wantToMove =
+                    Math.abs(speeds.vxMetersPerSecond) > SwerveConfig.headingCorrectionDeadband
+                            || Math.abs(speeds.vyMetersPerSecond)
+                                    > SwerveConfig.headingCorrectionDeadband;
+            boolean notRotating =
+                    getRobotRelativeSpeeds().omegaRadiansPerSecond
+                            < SwerveConfig.headingCorrectionRotatingDeadband;
+            if (dontWantToRotate && wantToMove && notRotating) {
+                speeds.omegaRadiansPerSecond =
+                        m_holdHeadingPid.calculate(
+                                SwerveSubsystem.getInstance().getHeading().getRadians(),
+                                lastHeadingRadians);
+            } else {
+                lastHeadingRadians = getHeading().getRadians();
+            }
+        }
 
-        SwerveDriveKinematics.desaturateWheelSpeeds(
-                swerveModuleStates, Config.SwerveConfig.maxSpeed);
-        pubDesiredStates.accept(AdvantageUtil.deconstructSwerveModuleState(swerveModuleStates));
+        m_currentSetpoint =
+                m_setpointGenerator.generateSetpoint(
+                        m_moduleLimits.setpoint,
+                        m_currentSetpoint,
+                        speeds,
+                        GeneralConfig.loopPeriodSecs);
+
+        pubVelCmdX.accept(m_currentSetpoint.chassisSpeeds.vxMetersPerSecond);
+        pubVelCmdY.accept(m_currentSetpoint.chassisSpeeds.vyMetersPerSecond);
+        pubVelCmdRot.accept(Math.toDegrees(m_currentSetpoint.chassisSpeeds.omegaRadiansPerSecond));
+        pubDesiredStates.accept(
+                AdvantageUtil.deconstructSwerveModuleState(m_currentSetpoint.moduleStates));
 
         for (int i = 0; i < m_modules.length; i++) {
-            m_modules[i].setDesiredState(swerveModuleStates[i], isOpenLoop);
+            m_modules[i].setDesiredState(m_currentSetpoint.moduleStates[i], isOpenLoop);
         }
     }
 
     /**
-     * Sets the desired states for the swerve modules. This parameter set is required by PathPlanner
+     * Sets the desired states for the swerve modules. Runs SwerveSetpointGenerator to enforce a viable
      *
      * @param desiredStates An array of SwerveModuleState objects representing the desired states for each module.
      * @param isOpenLoop    A boolean indicating whether the control mode is open loop or not.
@@ -236,6 +298,16 @@ public class SwerveSubsystem extends SubsystemBase {
         for (int i = 0; i < m_modules.length; i++) {
             m_modules[i].setDesiredState(desiredStates[i], isOpenLoop);
         }
+    }
+
+    /**
+     * Drives the robot with the given robot-relative speeds.
+     * This specific parameter set is required by PathPlanner.
+     *
+     * @param robotRelativeSpeeds the robot-relative speeds to drive the robot with
+     */
+    public void drivePathPlanner(ChassisSpeeds robotRelativeSpeeds) {
+        drive(robotRelativeSpeeds, false, false);
     }
 
     /**
@@ -476,8 +548,10 @@ public class SwerveSubsystem extends SubsystemBase {
 
         m_poseBuffer.addPoseToBuffer(getPose());
 
-        // Check if the tunable feedforward or pids have changed
+        // Check if tunable values have changed and update them if so
         SwerveModuleAbstract.updateTunableModuleConstants();
+        TunableDouble.ifChanged(
+                hashCode(), () -> m_holdHeadingPid.setP(tunableHeadingkP.get()), tunableHeadingkP);
 
         // Update NetworkTables
         pubPoseRot.accept(getPose().getRotation().getDegrees());
@@ -491,21 +565,6 @@ public class SwerveSubsystem extends SubsystemBase {
         pubMeasVelX.accept(fieldSpeeds.vxMetersPerSecond);
         pubMeasVelY.accept(fieldSpeeds.vyMetersPerSecond);
         pubMeasVelRot.accept(Math.toDegrees(fieldSpeeds.omegaRadiansPerSecond));
-    }
-
-    /**
-     * Drives the robot with the given robot-relative speeds.
-     *
-     * @param robotRelativeSpeeds the robot-relative speeds to drive the robot with
-     */
-    public void driveRobotRelative(ChassisSpeeds robotRelativeSpeeds) {
-        ChassisSpeeds targetSpeeds =
-                ChassisSpeeds.discretize(robotRelativeSpeeds, GeneralConfig.loopPeriodSecs);
-        // ChassisSpeeds targetSpeeds = robotRelativeSpeeds;
-
-        SwerveModuleState[] targetStates =
-                SwerveConfig.swerveKinematics.toSwerveModuleStates(targetSpeeds);
-        setModuleStates(targetStates, false);
     }
 
     /**

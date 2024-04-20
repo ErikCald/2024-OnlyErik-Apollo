@@ -10,13 +10,25 @@
   },
   "NetworkTables": {
     "transitory": {
+      "SelectAuto": {
+        "open": true
+      },
       "Shuffleboard": {
         "ArmDisplay": {
           "ArmDisplayMech": {
             "open": true
           },
           "open": true
-        }
+        },
+        "BasicDebugging": {
+          "CommandScheduler": {
+            "open": true,
+            "string[]##v_/Shuffleboard/BasicDebugging/CommandScheduler/Names": {
+              "open": true
+            }
+          }
+        },
+        "open": true
       },
       "Swerve": {
         "Drive": {
@@ -25,7 +37,9 @@
           },
           "TuneSimpleFF": {
             "open": true
-          },
+          }
+        },
+        "double[]##v_/Swerve/EstimatedPose": {
           "open": true
         },
         "open": true

@@ -1,6 +1,7 @@
 package frc.lib.lib2706.networktables;
 
 import edu.wpi.first.networktables.NetworkTable;
+
 import frc.lib.lib2706.controllers.PIDConfig;
 
 import java.util.function.Consumer;

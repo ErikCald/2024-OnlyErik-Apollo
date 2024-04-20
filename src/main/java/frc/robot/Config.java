@@ -16,6 +16,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 
+import frc.lib.lib254.SwerveModuleLimits;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 
 import java.io.BufferedReader;
@@ -185,7 +186,7 @@ public final class Config {
 
     public static final class GeneralConfig {
         public static final boolean enableTunableData = false;
-        public static final double joystickDeadband = 0.6;
+        public static final double joystickDeadband = 0.1;
 
         public static final int revMaxRetries = 5;
         public static final int ctreMaxRetries = 5;
@@ -342,17 +343,27 @@ public final class Config {
         public static final double driveGearRatio = (8.14 / 1.0);
         public static final double steerGearRatio = (12.8 / 1.0);
 
-        public static final double discretizePeriodSecs = GeneralConfig.loopPeriodSecs * robotSpecific(1.0, 3.0); // 0.02 * fudgeFactor
+        public static final double discretizePeriodSecs =
+                GeneralConfig.loopPeriodSecs * robotSpecific(1.0, 3.0); // 0.02 * fudgeFactor
         public static final double syncMetersTol = Math.toRadians(1);
         public static final double syncMPSTol = 1;
         public static final double syncRadTol = Math.toRadians(1);
 
+        public static final Translation2d[] moduleLocations = {
+            new Translation2d(wheelBase / 2.0, trackWidth / 2.0),
+            new Translation2d(wheelBase / 2.0, -trackWidth / 2.0),
+            new Translation2d(-wheelBase / 2.0, trackWidth / 2.0),
+            new Translation2d(-wheelBase / 2.0, -trackWidth / 2.0)
+        };
+
         public static final SwerveDriveKinematics swerveKinematics =
-                new SwerveDriveKinematics(
-                        new Translation2d(wheelBase / 2.0, trackWidth / 2.0),
-                        new Translation2d(wheelBase / 2.0, -trackWidth / 2.0),
-                        new Translation2d(-wheelBase / 2.0, trackWidth / 2.0),
-                        new Translation2d(-wheelBase / 2.0, -trackWidth / 2.0));
+                new SwerveDriveKinematics(moduleLocations);
+
+        /* Swerve Heading Correction */
+        public static final boolean enableHeadingCorrection = true;
+        public static final double headingCorrectionDeadband = 0.01;
+        public static final double headingCorrectionRotatingDeadband = Math.toRadians(60);
+        public static final double holdHeadingkP = 5.0;
 
         /* Swerve Voltage Compensation Changed */
         public static final double driveVoltComp = 12.0;
@@ -393,29 +404,33 @@ public final class Config {
         public static final double translationAllowableError = 0.01;
         public static final double rotationAllowableError = Math.toRadians(0.7);
 
-        /* Swerve Profiling Values Changed */
-        public static enum TeleopSpeeds {
-            SLOW(0.5, 0.5 * Math.PI, 16, 12 * Math.PI),
-            MAX(3.0, 2.5 * Math.PI, 6, 8 * Math.PI);
+        public static enum ModuleLimits {
+            // NEO V1.0/V1.1 L1 Modules has a Drivetrain Free Speed of 12.5 ft/s or 3.81 m/s
+            AUTO(new SwerveModuleLimits(3.5, 3.5 * 5, Math.toRadians(1080))),
+            TELEOP_FAST(new SwerveModuleLimits(3.5, 3.5 * 5, Math.toRadians(1080)));
 
-            public final double translationalSpeed;
-            public final double angularSpeed;
-            public final double translationAccelLimit;
-            public final double angularAccelLimit;
+            public final SwerveModuleLimits setpoint;
 
-            TeleopSpeeds(
-                    double translationalSpeed,
-                    double angularSpeed,
-                    double translationAccelLimit,
-                    double angAccelLimit) {
-                this.translationalSpeed = translationalSpeed;
-                this.angularSpeed = angularSpeed;
-                this.translationAccelLimit = translationAccelLimit;
-                this.angularAccelLimit = angAccelLimit;
+            ModuleLimits(SwerveModuleLimits setpoint) {
+                this.setpoint = setpoint;
             }
         }
 
-        public static final double maxSpeed = 4.0; // meters per second
+        /* Swerve Profiling Values Changed */
+        public static enum TeleopSpeeds {
+            SLOW(0.5, 0.5 * Math.PI),
+            MAX(3.5, 3.0 * Math.PI);
+
+            public final double translationalSpeed;
+            public final double angularSpeed;
+
+            TeleopSpeeds(double translationalSpeed, double angularSpeed) {
+                this.translationalSpeed = translationalSpeed;
+                this.angularSpeed = angularSpeed;
+            }
+        }
+
+        public static final double maxSpeed = 3.5; // meters per second
         public static final double maxAngularVelocity = Math.PI * 3.0;
 
         /* Neutral Modes */

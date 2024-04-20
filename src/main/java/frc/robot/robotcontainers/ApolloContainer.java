@@ -12,6 +12,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+
+import frc.lib.lib2706.button.FakeCommandXboxController;
+import frc.lib.lib2706.button.FakeCommandXboxController.FakeControllerType;
 import frc.lib.lib2706.button.XBoxControllerUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
 import frc.robot.Config;
@@ -50,9 +53,16 @@ import frc.robot.subsystems.swerve.SwerveSubsystem;
  */
 public class ApolloContainer extends RobotContainer {
     /* Controllers */
-    private final CommandXboxController driver = new CommandXboxController(0);
-    private final CommandXboxController operator = new CommandXboxController(1);
-    private final CommandXboxController testJoystick = new CommandXboxController(2);
+    // private final CommandXboxController driver = new CommandXboxController(0);
+    // private final CommandXboxController operator = new CommandXboxController(1);
+    // private final CommandXboxController testJoystick = new CommandXboxController(2);
+
+    private final CommandXboxController driver =
+            new FakeCommandXboxController(0, FakeControllerType.EliminatorAfterShock);
+    private final CommandXboxController operator =
+            new FakeCommandXboxController(1, FakeControllerType.EliminatorAfterShock);
+    private final CommandXboxController testJoystick =
+            new FakeCommandXboxController(2, FakeControllerType.EliminatorAfterShock);
 
     /* Create Subsystems in a specific order */
     private final SwerveSubsystem s_Swerve = SwerveSubsystem.getInstance();
@@ -87,7 +97,7 @@ public class ApolloContainer extends RobotContainer {
             // shooter.setDefaultCommand(new Shooter_PID_Tuner(() -> 0));
         }
 
-        // configureButtonBindings();
+        configureButtonBindings();
 
         // Setup auto
         m_autoRoutines = new AutoRoutines();
