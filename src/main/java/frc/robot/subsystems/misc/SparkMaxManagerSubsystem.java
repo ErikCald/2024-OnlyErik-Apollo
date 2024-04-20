@@ -157,6 +157,10 @@ public class SparkMaxManagerSubsystem extends SubsystemBase {
         return faultString.substring(0, faultString.length() - 2);
     }
 
+    /**
+     * The SparkMaxManager class is responsible for managing a CANSparkMax motor controller.
+     * It provides functionality to handle faults, update fault status, and raise alerts for major and minor issues.
+     */
     private class SparkMaxManager {
         private final CANSparkMax m_sparkMax;
         private final StringArrayPublisher pubErrors;
@@ -189,9 +193,11 @@ public class SparkMaxManagerSubsystem extends SubsystemBase {
 
         private void update() {
             // Get the sticky faults since the last time this was called and clear faults
-            // short faultBits = m_sparkMax.getStickyFaults();
-            short faultBits = (short) (1 << (int) FaultID.kDRVFault.value);
+            short faultBits = m_sparkMax.getStickyFaults();
             m_sparkMax.clearFaults();
+
+            // Hard code faultBits to test it in simulation. Comment out in real robot
+            // faultBits = (short) (1 << (int) FaultID.kDRVFault.value);
 
             // Publish the faults as an array of strings
             ArrayList<FaultID> faults = faultBitsToFaultID(faultBits);

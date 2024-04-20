@@ -3,6 +3,7 @@
     "types": {
       "/FMSInfo": "FMSInfo",
       "/Shuffleboard/ArmDisplay/ArmDisplayMech": "Mechanism2d",
+      "/Shuffleboard/SoftwareDebugging/CommandScheduler": "Scheduler",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/command reset id": "Command"
     }
