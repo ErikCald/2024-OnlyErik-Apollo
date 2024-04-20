@@ -44,7 +44,8 @@ public class PoseBuffer {
     public Optional<Pose2d> getPoseAtTimestamp(double timestampSeconds) {
         // If this measurement is old enough to be outside the pose buffer's timespan, skip.
         try {
-            if (m_poseBuffer.getInternalBuffer().lastKey() - BUFFER_DURATION > timestampSeconds) {
+            if (m_poseBuffer.getInternalBuffer().lastEntry().getKey() - BUFFER_DURATION
+                    > timestampSeconds) {
                 return Optional.empty();
             }
         } catch (NoSuchElementException ex) {

@@ -26,7 +26,7 @@ import frc.robot.Config;
 import frc.robot.Config.NTConfig;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.States;
-import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 import java.util.function.BooleanSupplier;
 
@@ -109,7 +109,8 @@ public class ShooterSubsystem extends SubsystemBase {
                         .getStringTopic("Shooter state")
                         .publish(PubSubOption.periodic(0.02));
 
-        ErrorTrackingSubsystem.getInstance().register(m_motor);
+        SparkMaxManagerSubsystem.getInstance()
+                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_motor);
     }
 
     public double getVelocityRPM() {

@@ -23,9 +23,10 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Config;
+import frc.robot.Config.NTConfig;
 import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes;
 import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeStates;
-import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 /** Add your docs here. */
 public class IntakeSubsystem extends SubsystemBase {
@@ -100,7 +101,8 @@ public class IntakeSubsystem extends SubsystemBase {
                         .getBooleanTopic("back sensor result")
                         .publish(PubSubOption.periodic(0.02));
 
-        ErrorTrackingSubsystem.getInstance().register(m_intake);
+        SparkMaxManagerSubsystem.getInstance()
+                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_intake);
 
         // Must be the last thing in the constructor
         burnFlash();

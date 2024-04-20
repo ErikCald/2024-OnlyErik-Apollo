@@ -3,7 +3,6 @@
     "types": {
       "/FMSInfo": "FMSInfo",
       "/Shuffleboard/ArmDisplay/ArmDisplayMech": "Mechanism2d",
-      "/Shuffleboard/BasicDebugging/CommandScheduler": "Scheduler",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/command reset id": "Command"
     }
@@ -19,14 +18,6 @@
             "open": true
           },
           "open": true
-        },
-        "BasicDebugging": {
-          "CommandScheduler": {
-            "open": true,
-            "string[]##v_/Shuffleboard/BasicDebugging/CommandScheduler/Names": {
-              "open": true
-            }
-          }
         },
         "open": true
       },

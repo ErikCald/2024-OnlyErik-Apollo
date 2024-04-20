@@ -41,6 +41,8 @@ import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes;
 import frc.robot.subsystems.mechanisms.IntakeSubsystem;
 import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
 import frc.robot.subsystems.mechanisms.ShooterSubsystem;
+import frc.robot.subsystems.misc.CreateShuffleboardLayout;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 /**
@@ -102,6 +104,12 @@ public class ApolloContainer extends RobotContainer {
         // Setup auto
         m_autoRoutines = new AutoRoutines();
         m_autoSelector = new AutoSelector();
+
+        // Setup shuffleboard
+        CreateShuffleboardLayout.create();
+
+        // Call burn flash on all SparkMaxs
+        SparkMaxManagerSubsystem.getInstance().burnFlashOnAllSparkmaxes();
     }
 
     /**

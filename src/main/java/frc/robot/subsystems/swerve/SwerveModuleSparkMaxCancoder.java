@@ -23,8 +23,9 @@ import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;
 import frc.lib.libYAGSL.SimplifiedCANCoder;
 import frc.robot.Config.CANID;
+import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
-import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
     private CANSparkMax steerMotor, driveMotor;
@@ -50,8 +51,8 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         super(moduleConstants, moduleName);
 
         /* Steer Encoder Config */
-        steerCancoder =
-                new SimplifiedCANCoder(moduleConstants.cancoderCanID, moduleName + " CANCoder");
+        String cancoderName = moduleName + "CANCoder" + moduleConstants.cancoderCanID;
+        steerCancoder = new SimplifiedCANCoder(moduleConstants.cancoderCanID, cancoderName);
         configSteerCancoder(moduleConstants.steerOffset);
 
         /* Steer Motor Config */
@@ -70,7 +71,8 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         SwerveModuleAbstract.setupTunableValues(this);
 
         /* Register CANSparkMaxs to log fault codes */
-        ErrorTrackingSubsystem.getInstance().register(steerMotor, driveMotor);
+        SparkMaxManagerSubsystem.getInstance()
+                .register(NTConfig.swerveSparkmaxAlertGroup, driveMotor, steerMotor);
 
         /* Reset the integrated steering encoder from absolute cancoder */
         setNEOEncoderFromCancoder();

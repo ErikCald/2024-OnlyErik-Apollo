@@ -7,8 +7,6 @@ package frc.robot;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -85,13 +83,6 @@ public class Robot extends TimedRobot {
                                 + RobotID.getActiveID().name(),
                         true);
         }
-
-        // Add CommandScheduler to shuffleboard so we can display what commands are scheduled
-        ShuffleboardTab basicDebuggingTab = Shuffleboard.getTab("BasicDebugging");
-        basicDebuggingTab
-                .add("CommandScheduler", CommandScheduler.getInstance())
-                .withPosition(3, 0)
-                .withSize(3, 6);
     }
 
     /**

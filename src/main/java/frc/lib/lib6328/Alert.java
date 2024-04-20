@@ -99,6 +99,15 @@ public class Alert {
         this.text = text;
     }
 
+    public static SendableAlerts getGroup(String group) {
+        if (!groups.containsKey(group)) {
+            groups.put(group, new SendableAlerts());
+            SmartDashboard.putData(group, groups.get(group));
+        }
+
+        return groups.get(group);
+    }
+
     private static class SendableAlerts implements Sendable {
         public final List<Alert> alerts = new ArrayList<>();
 

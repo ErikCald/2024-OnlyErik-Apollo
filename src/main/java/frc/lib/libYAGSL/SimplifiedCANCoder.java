@@ -19,6 +19,7 @@ import com.ctre.phoenix6.signals.SensorDirectionValue;
 
 import frc.lib.lib6328.Alert;
 import frc.robot.Config.GeneralConfig;
+import frc.robot.Config.NTConfig;
 
 /**
  * Class to represent the cancoder on the steering of a swerve module.
@@ -28,6 +29,7 @@ import frc.robot.Config.GeneralConfig;
  * Repo: http://github.com/BroncBotz3481/YAGSL
  */
 public class SimplifiedCANCoder {
+    private final String alertGroup = NTConfig.cancoderAlertGroup;
     private final int maximumRetries = GeneralConfig.ctreMaxRetries;
     private final double statusTimeoutSeconds = 0.02;
     private final double optimizeBusTimeout = 1.0;
@@ -50,23 +52,22 @@ public class SimplifiedCANCoder {
         velocity = cancoder.getVelocity();
 
         cannotConfigure =
-                new Alert("Cancoders", "Failure to configure " + name, Alert.AlertType.ERROR);
+                new Alert(alertGroup, name + " failed to configure", Alert.AlertType.ERROR);
         magnetFieldLessThanIdeal =
                 new Alert(
-                        "Cancoders",
+                        alertGroup,
                         name + " magnetic field is less than ideal.",
                         Alert.AlertType.ERROR);
-        readingFaulty =
-                new Alert("Cancoders", name + " reading was faulty.", Alert.AlertType.ERROR);
+        readingFaulty = new Alert(alertGroup, name + " reading was faulty.", Alert.AlertType.ERROR);
         readingIgnored =
                 new Alert(
-                        "Cancoders",
+                        alertGroup,
                         name + " reading was faulty, ignoring.",
-                        Alert.AlertType.ERROR);
+                        Alert.AlertType.WARNING);
         cannotSetOffset =
                 new Alert(
-                        "Cancoders",
-                        "Failure to set " + name + " Absolute Cancoder Offset",
+                        alertGroup,
+                        name + " failed to set Absolute Cancoder Offset",
                         Alert.AlertType.ERROR);
     }
 
@@ -170,8 +171,7 @@ public class SimplifiedCANCoder {
             return false;
         }
         error = cfg.apply(magCfg.withMagnetOffset(offset / 360));
-        cannotSetOffset.setText(
-                "Failure to set " + name + " Absolute Cancoder Offset Error: " + error);
+        cannotSetOffset.setText(name + " failed to set Absolute Cancoder Offset Error: " + error);
         if (error == StatusCode.OK) {
             cannotSetOffset.set(false);
             return true;

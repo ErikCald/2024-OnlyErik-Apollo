@@ -11,7 +11,8 @@ import com.revrobotics.RelativeEncoder;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Config;
-import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
+import frc.robot.Config.NTConfig;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 public class ClimberSubsystem extends SubsystemBase {
 
@@ -48,7 +49,8 @@ public class ClimberSubsystem extends SubsystemBase {
             // Set maximum current
             m_climber.setSmartCurrentLimit(40);
 
-            ErrorTrackingSubsystem.getInstance().register(m_climber);
+            SparkMaxManagerSubsystem.getInstance()
+                    .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_climber);
         }
         // Must be the last thing in the constructor
         burnFlash();

@@ -5,6 +5,8 @@
 package frc.robot.subsystems.swerve;
 
 import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkLowLevel.MotorType;
+import com.revrobotics.CANSparkMax;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
@@ -19,7 +21,9 @@ import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.lib.lib2706.controllers.PIDConfig;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.robot.Config.GeneralConfig;
+import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 /** Add your docs here. */
 public class SwerveModuleSim extends SwerveModuleAbstract {
@@ -49,6 +53,11 @@ public class SwerveModuleSim extends SwerveModuleAbstract {
         m_steerBrakeMode = SwerveConfig.steerIdleMode == IdleMode.kBrake;
 
         SwerveModuleAbstract.setupTunableValues(this);
+        SparkMaxManagerSubsystem.getInstance()
+                .register(
+                        NTConfig.swerveSparkmaxAlertGroup,
+                        new CANSparkMax(constants.driveCanID, MotorType.kBrushless),
+                        new CANSparkMax(constants.steerCanID, MotorType.kBrushless));
     }
 
     /**

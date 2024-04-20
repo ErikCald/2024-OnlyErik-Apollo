@@ -675,6 +675,10 @@ public final class Config {
                 intakeTable = NetworkTableInstance.getDefault().getTable("Intake"),
                 visionTable = NetworkTableInstance.getDefault().getTable("Vision");
 
+        public static String cancoderAlertGroup = "CancoderStatus";
+        public static String swerveSparkmaxAlertGroup = "SwerveSparkMaxStatus";
+        public static String nonSwerveSparkMaxAlertGroup = "NonSwerveSparkmaxStatus";
+
         public static double SLOW_PERIODIC_SECONDS = 250;
         public static double FAST_PERIODIC_SECONDS = 20;
     }

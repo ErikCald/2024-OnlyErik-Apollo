@@ -28,7 +28,8 @@ import frc.lib.lib2706.SubsystemChecker.SubsystemType;
 import frc.robot.Config;
 import frc.robot.Config.ArmConfig;
 import frc.robot.Config.CANID;
-import frc.robot.subsystems.misc.ErrorTrackingSubsystem;
+import frc.robot.Config.NTConfig;
+import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 public class ArmSubsystem extends SubsystemBase {
     private static ArmSubsystem instance =
@@ -187,7 +188,8 @@ public class ArmSubsystem extends SubsystemBase {
         burnFlash();
         configureSpark("Arm set CANTimeout", () -> m_arm.setCANTimeout(0));
 
-        ErrorTrackingSubsystem.getInstance().register(m_arm);
+        SparkMaxManagerSubsystem.getInstance()
+                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_arm);
     }
 
     public void updatePID0Settings() {
