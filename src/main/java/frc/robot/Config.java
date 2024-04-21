@@ -390,7 +390,8 @@ public final class Config {
         public static final double driveIZone = robotSpecific(0.0, 0.0);
 
         /* Drive Motor Characterization Values Changed */
-        public static final double driveKS = robotSpecific(0.667, 0.338); // Volts for static friction
+        public static final double driveKS =
+                robotSpecific(0.667, 0.338); // Volts for static friction
         public static final double driveKV = robotSpecific(4.0, 3.27338); // Volts per mps
         public static final double driveKA = robotSpecific(0.0, 0.0); // Volts per mps^2 (NOT USED)
 

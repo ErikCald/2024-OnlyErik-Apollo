@@ -32,12 +32,12 @@ public class AutoRoutines extends SubsystemBase {
 
     public Command getAutonomousCommand(int autoIndex) {
         switch (autoIndex) {
-            /** Do nothing command, default for safety */
+                /** Do nothing command, default for safety */
             default:
             case 0:
                 return new InstantCommand();
 
-            /** Auto Testing commands */
+                /** Auto Testing commands */
             case 1:
                 SwerveModuleState state = new SwerveModuleState(1, Rotation2d.fromDegrees(0));
                 SwerveModuleState[] states = new SwerveModuleState[] {state, state, state, state};
@@ -50,7 +50,7 @@ public class AutoRoutines extends SubsystemBase {
             case 3:
                 return testingAutoSCurve;
 
-            /** Characterization commands */
+                /** Characterization commands */
             case 20:
                 return new WheelDiameterCharacterizationCommand(false);
             case 21:

@@ -27,17 +27,18 @@ import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
+/**
+ * Represents a Swerve Module with SparkMax motor controllers and CANCoder for steering feedback.
+ * This class provides methods for configuring and controlling the steer and drive motors,
+ * as well as accessing the measured and desired speed and angle of the module.
+ */
 public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
-    private CANSparkMax steerMotor, driveMotor;
+    private CANSparkMax m_steerMotor, m_driveMotor;
+    private SparkPIDController m_driveController, m_steerController;
+    private RelativeEncoder m_driveEncoder, m_integratedSteerEncoder;
+    private SimplifiedCANCoder m_steerCancoder;
 
-    private RelativeEncoder driveEncoder;
-    private RelativeEncoder integratedSteerEncoder;
-    private SimplifiedCANCoder steerCancoder;
-
-    private SparkPIDController driveController;
-    private SparkPIDController steerController;
-
-    private boolean scheduleSyncEncoders = false;
+    private boolean m_scheduleSyncEncoders = false;
 
     /**
      * Represents a Swerve Module with SparkMax motor controllers and CANCoder for steering feedback.
@@ -52,19 +53,19 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
 
         /* Steer Encoder Config */
         String cancoderName = moduleName + "CANCoder" + moduleConstants.cancoderCanID;
-        steerCancoder = new SimplifiedCANCoder(moduleConstants.cancoderCanID, cancoderName);
+        m_steerCancoder = new SimplifiedCANCoder(moduleConstants.cancoderCanID, cancoderName);
         configSteerCancoder(moduleConstants.steerOffset);
 
         /* Steer Motor Config */
-        steerMotor = new CANSparkMax(moduleConstants.steerCanID, MotorType.kBrushless);
-        integratedSteerEncoder = steerMotor.getEncoder();
-        steerController = steerMotor.getPIDController();
+        m_steerMotor = new CANSparkMax(moduleConstants.steerCanID, MotorType.kBrushless);
+        m_integratedSteerEncoder = m_steerMotor.getEncoder();
+        m_steerController = m_steerMotor.getPIDController();
         configSteerMotor();
 
         /* Drive Motor Config */
-        driveMotor = new CANSparkMax(moduleConstants.driveCanID, MotorType.kBrushless);
-        driveEncoder = driveMotor.getEncoder();
-        driveController = driveMotor.getPIDController();
+        m_driveMotor = new CANSparkMax(moduleConstants.driveCanID, MotorType.kBrushless);
+        m_driveEncoder = m_driveMotor.getEncoder();
+        m_driveController = m_driveMotor.getPIDController();
         configDriveMotor();
 
         /* Setup tunable values. This will set the PIDF values for both the drive and steer */
@@ -72,106 +73,95 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
 
         /* Register CANSparkMaxs to log fault codes */
         SparkMaxManagerSubsystem.getInstance()
-                .register(NTConfig.swerveSparkmaxAlertGroup, driveMotor, steerMotor);
+                .register(NTConfig.swerveSparkmaxAlertGroup, m_driveMotor, m_steerMotor);
 
         /* Reset the integrated steering encoder from absolute cancoder */
         setNEOEncoderFromCancoder();
-
-        /* Burn settings to flash */
-        burnFlash();
     }
 
     /**
      * Configures the steer CANCoder
      */
     private void configSteerCancoder(Rotation2d steerOffset) {
-        steerCancoder.factoryDefault();
-        steerCancoder.configure(SwerveConfig.cancoderInvert, SwerveConfig.cancoderUpdatePeriod);
-        steerCancoder.setAbsoluteCancoderOffset(tunableSteerOffset.get());
+        m_steerCancoder.factoryDefault();
+        m_steerCancoder.configure(SwerveConfig.cancoderInvert, SwerveConfig.cancoderUpdatePeriod);
+        m_steerCancoder.setAbsoluteCancoderOffset(tunableSteerOffset.get());
     }
 
     /**
      * Configures the steer motor
      */
     private void configSteerMotor() {
-        configureSpark("Steer can timeout", () -> steerMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
-        configureSpark("Steer restore factory defaults", () -> steerMotor.restoreFactoryDefaults());
+        configureSpark("Steer can timeout", () -> m_steerMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
         configureSpark(
-                "Steer set can blocking", () -> steerMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
-        CANSparkMaxUtil.setCANSparkMaxBusUsage(steerMotor, Usage.kAll);
+                "Steer restore factory defaults", () -> m_steerMotor.restoreFactoryDefaults());
+        configureSpark(
+                "Steer set can blocking", () -> m_steerMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
+        CANSparkMaxUtil.setCANSparkMaxBusUsage(m_steerMotor, Usage.kAll);
         configureSpark(
                 "Steer current limit",
-                () -> steerMotor.setSmartCurrentLimit(SwerveConfig.steerContinuousCurrentLimit));
-        steerMotor.setInverted(SwerveConfig.steerInvert);
-        configureSpark("Steer idle mode", () -> steerMotor.setIdleMode(SwerveConfig.steerIdleMode));
+                () -> m_steerMotor.setSmartCurrentLimit(SwerveConfig.steerContinuousCurrentLimit));
+        m_steerMotor.setInverted(SwerveConfig.steerInvert);
+        configureSpark(
+                "Steer idle mode", () -> m_steerMotor.setIdleMode(SwerveConfig.steerIdleMode));
         configureSpark(
                 "Steer position conversion factor",
                 () ->
-                        integratedSteerEncoder.setPositionConversionFactor(
+                        m_integratedSteerEncoder.setPositionConversionFactor(
                                 SwerveConfig.steerConvFactor));
         configureSpark(
                 "Steer velocity conversion factor",
                 () ->
-                        integratedSteerEncoder.setVelocityConversionFactor(
+                        m_integratedSteerEncoder.setVelocityConversionFactor(
                                 SwerveConfig.steerVelConvFactor));
-        configureSpark("Steer set P", () -> steerController.setP(SwerveConfig.steerKP));
-        configureSpark("Steer set I", () -> steerController.setI(SwerveConfig.steerKI));
-        configureSpark("Steer set D", () -> steerController.setD(SwerveConfig.steerKD));
-        configureSpark("Steer set FF", () -> steerController.setFF(0.0));
+        configureSpark("Steer set P", () -> m_steerController.setP(SwerveConfig.steerKP));
+        configureSpark("Steer set I", () -> m_steerController.setI(SwerveConfig.steerKI));
+        configureSpark("Steer set D", () -> m_steerController.setD(SwerveConfig.steerKD));
+        configureSpark("Steer set FF", () -> m_steerController.setFF(0.0));
         configureSpark(
-                "Steer set pid wrap min", () -> steerController.setPositionPIDWrappingMinInput(0));
+                "Steer set pid wrap min",
+                () -> m_steerController.setPositionPIDWrappingMinInput(0));
         configureSpark(
                 "Steer set pid wrap max",
-                () -> steerController.setPositionPIDWrappingMaxInput(2 * Math.PI));
+                () -> m_steerController.setPositionPIDWrappingMaxInput(2 * Math.PI));
         configureSpark(
-                "Steer set pid wrap", () -> steerController.setPositionPIDWrappingEnabled(true));
+                "Steer set pid wrap", () -> m_steerController.setPositionPIDWrappingEnabled(true));
         configureSpark(
                 "Steer enable Volatage Compensation",
-                () -> steerMotor.enableVoltageCompensation(SwerveConfig.steerVoltComp));
-        configureSpark("Steer set can nonblocking", () -> steerMotor.setCANTimeout(0));
+                () -> m_steerMotor.enableVoltageCompensation(SwerveConfig.steerVoltComp));
+        configureSpark("Steer set can nonblocking", () -> m_steerMotor.setCANTimeout(0));
     }
 
     /*
      * Config the drive motor
      */
     private void configDriveMotor() {
-        configureSpark("Drive can timeout", () -> driveMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
-        configureSpark("Drive restore factory defaults", () -> driveMotor.restoreFactoryDefaults());
+        configureSpark("Drive can timeout", () -> m_driveMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
         configureSpark(
-                "Drive set can blocking", () -> driveMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
-        CANSparkMaxUtil.setCANSparkMaxBusUsage(driveMotor, Usage.kAll);
+                "Drive restore factory defaults", () -> m_driveMotor.restoreFactoryDefaults());
+        configureSpark(
+                "Drive set can blocking", () -> m_driveMotor.setCANTimeout(CANID.CANTIMEOUT_MS));
+        CANSparkMaxUtil.setCANSparkMaxBusUsage(m_driveMotor, Usage.kAll);
         configureSpark(
                 "Drive smart current limit",
-                () -> driveMotor.setSmartCurrentLimit(SwerveConfig.driveContinuousCurrentLimit));
-        driveMotor.setInverted(SwerveConfig.driveInvert);
-        configureSpark("Drive idle mode", () -> driveMotor.setIdleMode(SwerveConfig.driveIdleMode));
+                () -> m_driveMotor.setSmartCurrentLimit(SwerveConfig.driveContinuousCurrentLimit));
+        m_driveMotor.setInverted(SwerveConfig.driveInvert);
+        configureSpark(
+                "Drive idle mode", () -> m_driveMotor.setIdleMode(SwerveConfig.driveIdleMode));
         configureSpark(
                 "Drive velocity conversion factor",
-                () -> driveEncoder.setVelocityConversionFactor(SwerveConfig.driveConvVelFactor));
+                () -> m_driveEncoder.setVelocityConversionFactor(SwerveConfig.driveConvVelFactor));
         configureSpark(
                 "Drive position conversion factor",
-                () -> driveEncoder.setPositionConversionFactor(SwerveConfig.driveConvPosFactor));
-        configureSpark("Drive set P", () -> driveController.setP(SwerveConfig.driveKP));
-        configureSpark("Drive set I", () -> driveController.setI(SwerveConfig.driveKI));
-        configureSpark("Drive set D", () -> driveController.setD(SwerveConfig.driveKD));
-        configureSpark("Drive set FF", () -> driveController.setFF(SwerveConfig.driveKFF));
+                () -> m_driveEncoder.setPositionConversionFactor(SwerveConfig.driveConvPosFactor));
+        configureSpark("Drive set P", () -> m_driveController.setP(SwerveConfig.driveKP));
+        configureSpark("Drive set I", () -> m_driveController.setI(SwerveConfig.driveKI));
+        configureSpark("Drive set D", () -> m_driveController.setD(SwerveConfig.driveKD));
+        configureSpark("Drive set FF", () -> m_driveController.setFF(SwerveConfig.driveKFF));
         configureSpark(
                 "Drive voltage comp",
-                () -> driveMotor.enableVoltageCompensation(SwerveConfig.driveVoltComp));
-        configureSpark("Drive set position", () -> driveEncoder.setPosition(0.0));
-    }
-
-    /**
-     * Save the configurations from flash to EEPROM.
-     */
-    private void burnFlash() {
-        try {
-            Thread.sleep(200);
-        } catch (Exception e) {
-        }
-
-        driveMotor.burnFlash();
-        steerMotor.burnFlash();
+                () -> m_driveMotor.enableVoltageCompensation(SwerveConfig.driveVoltComp));
+        configureSpark("Drive set position", () -> m_driveEncoder.setPosition(0.0));
     }
 
     /**
@@ -180,11 +170,11 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @param pid The PIDConfig object containing the new PID values.
      */
     protected void updateDrivePID(PIDConfig pid) {
-        errSpark("Drive set P", driveController.setP(pid.kP, pid.pidSlot));
-        errSpark("Drive set I", driveController.setI(pid.kI, pid.pidSlot));
-        errSpark("Drive set D", driveController.setD(pid.kD, pid.pidSlot));
-        errSpark("Drive set FF", driveController.setFF(pid.kF, pid.pidSlot));
-        errSpark("Drive update iZone", driveController.setIZone(pid.iZone, pid.pidSlot));
+        errSpark("Drive set P", m_driveController.setP(pid.kP, pid.pidSlot));
+        errSpark("Drive set I", m_driveController.setI(pid.kI, pid.pidSlot));
+        errSpark("Drive set D", m_driveController.setD(pid.kD, pid.pidSlot));
+        errSpark("Drive set FF", m_driveController.setFF(pid.kF, pid.pidSlot));
+        errSpark("Drive update iZone", m_driveController.setIZone(pid.iZone, pid.pidSlot));
     }
 
     /**
@@ -193,11 +183,11 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @param pid The PID configuration to update.
      */
     protected void updateSteerPID(PIDConfig pid) {
-        errSpark("Steer set P", steerController.setP(pid.kP, pid.pidSlot));
-        errSpark("Steer set I", steerController.setI(pid.kI, pid.pidSlot));
-        errSpark("Steer set D", steerController.setD(pid.kD, pid.pidSlot));
-        errSpark("Steer set FF", steerController.setFF(0, pid.pidSlot));
-        errSpark("Steer update iZone", steerController.setIZone(pid.iZone, pid.pidSlot));
+        errSpark("Steer set P", m_steerController.setP(pid.kP, pid.pidSlot));
+        errSpark("Steer set I", m_steerController.setI(pid.kI, pid.pidSlot));
+        errSpark("Steer set D", m_steerController.setD(pid.kD, pid.pidSlot));
+        errSpark("Steer set FF", m_steerController.setFF(0, pid.pidSlot));
+        errSpark("Steer update iZone", m_steerController.setIZone(pid.iZone, pid.pidSlot));
     }
 
     /**
@@ -205,14 +195,14 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      */
     @Override
     public void resetToAbsolute() {
-        scheduleSyncEncoders = true;
+        m_scheduleSyncEncoders = true;
     }
 
     /**
      * Sets the NEO encoder position based on the CANCoder's radians value.
      */
     private void setNEOEncoderFromCancoder() {
-        integratedSteerEncoder.setPosition(getCanCoder().getRadians());
+        m_integratedSteerEncoder.setPosition(getCanCoder().getRadians());
     }
 
     /**
@@ -233,13 +223,13 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         // Reset to absolute if scheduled and if the module is not about to move
         double angleError = desiredState.angle.getRadians() - getAngle().getRadians();
         boolean shouldSync =
-                scheduleSyncEncoders
+                m_scheduleSyncEncoders
                         && Math.abs(desiredState.speedMetersPerSecond) < SwerveConfig.syncMPSTol
                         && Math.abs(MathUtil.angleModulus(angleError)) < SwerveConfig.syncRadTol;
         if (shouldSync) {
             setNEOEncoderFromCancoder();
         }
-        scheduleSyncEncoders = false;
+        m_scheduleSyncEncoders = false;
 
         // Publish the desired state to the network table
         pubDesiredAngle.accept(desiredState.angle.getDegrees());
@@ -257,7 +247,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      */
     @Override
     public void setVolts(double driveVolts, Rotation2d steeringAngle) {
-        driveMotor.setVoltage(driveVolts);
+        m_driveMotor.setVoltage(driveVolts);
         setAngle(steeringAngle);
     }
 
@@ -273,12 +263,19 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
 
         if (isOpenLoop) {
             double percentOutput = speed / SwerveConfig.maxSpeed;
-            driveMotor.set(percentOutput);
+            m_driveMotor.set(percentOutput);
         } else {
-            errSpark(
-                    "Drive set FF",
-                    driveController.setReference(
-                            speed, ControlType.kVelocity, 0, s_driveFF.calculate(speed)));
+            // If we don't want to move and are not moving, then don't move!
+            if (Math.abs(speed) < SwerveConfig.driveVelAllowableError
+                    && Math.abs(getDriveVelocity()) < SwerveConfig.driveVelAllowableError) {
+                m_driveMotor.stopMotor();
+            } else {
+                // We want to move
+                errSpark(
+                        "Drive set vel with FF",
+                        m_driveController.setReference(
+                                speed, ControlType.kVelocity, 0, s_driveFF.calculate(speed)));
+            }
         }
     }
 
@@ -288,10 +285,16 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @param angle the desired angle of the swerve module
      */
     private void setAngle(Rotation2d angle) {
-        errSpark(
-                "Steer set reference",
-                steerController.setReference(
-                        angle.getRadians(), CANSparkBase.ControlType.kPosition));
+        // If within a very small allowable error of the setpoint then don't move
+        if (Math.abs(getAngle().getRadians() - angle.getRadians())
+                < SwerveConfig.steerPosAllowableError) {
+            m_steerMotor.stopMotor();
+        } else {
+            errSpark(
+                    "Steer set angle",
+                    m_steerController.setReference(
+                            angle.getRadians(), CANSparkBase.ControlType.kPosition));
+        }
     }
 
     /**
@@ -300,7 +303,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @return the angle of the swerve module
      */
     private Rotation2d getAngle() {
-        return new Rotation2d(integratedSteerEncoder.getPosition());
+        return new Rotation2d(m_integratedSteerEncoder.getPosition());
     }
 
     /**
@@ -309,7 +312,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @return the velocity in meters per second
      */
     private double getDriveVelocity() {
-        return driveEncoder.getVelocity();
+        return m_driveEncoder.getVelocity();
     }
 
     /**
@@ -318,7 +321,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @return the drive position in meters
      */
     private double getDrivePosition() {
-        return driveEncoder.getPosition();
+        return m_driveEncoder.getPosition();
     }
 
     /**
@@ -329,7 +332,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      */
     private Rotation2d getCanCoder() {
         return Rotation2d.fromDegrees(
-                steerCancoder.getAbsolutePosition() - tunableSteerOffset.get());
+                m_steerCancoder.getAbsolutePosition() - tunableSteerOffset.get());
     }
 
     /**
@@ -359,7 +362,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      */
     @Override
     public double getSteeringVelocity() {
-        return integratedSteerEncoder.getVelocity();
+        return m_integratedSteerEncoder.getVelocity();
     }
 
     /**
@@ -374,7 +377,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
 
         TunableDouble.ifChanged(
                 hashCode(),
-                () -> steerCancoder.setAbsoluteCancoderOffset(tunableSteerOffset.get()),
+                () -> m_steerCancoder.setAbsoluteCancoderOffset(tunableSteerOffset.get()),
                 tunableSteerOffset);
     }
 
@@ -404,8 +407,8 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      * @param steer The idle mode for the steer motor.
      */
     public void setIdleMode(IdleMode drive, IdleMode steer) {
-        driveMotor.setIdleMode(drive);
-        steerMotor.setIdleMode(steer);
+        m_driveMotor.setIdleMode(drive);
+        m_steerMotor.setIdleMode(steer);
     }
 
     /**
@@ -413,7 +416,7 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
      */
     @Override
     public void stopMotors() {
-        driveMotor.stopMotor();
-        steerMotor.stopMotor();
+        m_driveMotor.stopMotor();
+        m_steerMotor.stopMotor();
     }
 }

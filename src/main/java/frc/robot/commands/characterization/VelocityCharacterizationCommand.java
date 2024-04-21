@@ -12,6 +12,7 @@ import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+
 import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib6328.PolynomialRegression;
 import frc.robot.Config.NTConfig;
@@ -33,7 +34,7 @@ import java.util.function.Supplier;
  */
 public class VelocityCharacterizationCommand extends Command {
     private static final NetworkTable table =
-        NTConfig.characterizingTable.getSubTable("VelocityCharacterization");
+            NTConfig.characterizingTable.getSubTable("VelocityCharacterization");
     private static final TunableDouble currentRampFactor =
             new TunableDouble("VoltageRampPerSec", table, 0.1);
 
