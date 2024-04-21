@@ -147,6 +147,24 @@ public class SwerveModuleSim extends SwerveModuleAbstract {
     }
 
     /**
+     * Sets the drive voltage and steering angle for the swerve module.
+     * <p> This is great for characterizing the swerve chassis.
+     *
+     * @param driveVolts The drive voltage to be applied to the module.
+     * @param steeringAngle The steering angle for the module.
+     */
+    @Override
+    public void setVolts(double driveVolts, Rotation2d steeringAngle) {
+        m_driveMotorSim.setInputVoltage(driveVolts);
+
+        double steerVolts =
+                m_steerPID.calculate(getAngle().getRadians(), steeringAngle.getRadians());
+        steerVolts =
+                MathUtil.clamp(steerVolts, -SwerveConfig.steerVoltComp, SwerveConfig.steerVoltComp);
+        m_steerMotorSim.setInputVoltage(steerVolts);
+    }
+
+    /**
      * Returns the angle of the swerve module.
      *
      * @return the angle of the swerve module

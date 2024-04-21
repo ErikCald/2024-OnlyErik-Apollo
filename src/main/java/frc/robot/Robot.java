@@ -19,6 +19,8 @@ import frc.robot.robotcontainers.RobotContainer;
 import frc.robot.subsystems.arm.ArmSubsystem;
 import frc.robot.subsystems.vision.PhotonSubsystem;
 
+import java.sql.Driver;
+
 import org.littletonrobotics.urcl.URCL;
 import org.photonvision.PhotonCamera;
 
@@ -47,6 +49,9 @@ public class Robot extends TimedRobot {
 
         // Disable PhotonVision version check in simulation
         PhotonCamera.setVersionCheckEnabled(!Robot.isSimulation());
+
+        // Silence joystick warnings if in simulation
+        DriverStation.silenceJoystickConnectionWarning(Robot.isSimulation());
 
         // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         // autonomous chooser on the dashboard.

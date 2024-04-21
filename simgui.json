@@ -10,17 +10,13 @@
   },
   "NetworkTables": {
     "transitory": {
-      "SelectAuto": {
-        "open": true
-      },
       "Shuffleboard": {
         "ArmDisplay": {
           "ArmDisplayMech": {
             "open": true
           },
           "open": true
-        },
-        "open": true
+        }
       },
       "Swerve": {
         "Drive": {

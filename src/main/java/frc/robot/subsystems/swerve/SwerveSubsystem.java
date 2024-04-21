@@ -301,6 +301,17 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     /**
+     * Sets the drive voltage and steering angle for characterization on all swerve modules.
+     *
+     * @param driveVolts    The drive voltage to set for all swerve modules.
+     */
+    public void setVoltsForCharacterization(double driveVolts) {
+        for (int i = 0; i < m_modules.length; i++) {
+            m_modules[i].setVolts(driveVolts, new Rotation2d());
+        }
+    }
+
+    /**
      * Drives the robot with the given robot-relative speeds.
      * This specific parameter set is required by PathPlanner.
      *

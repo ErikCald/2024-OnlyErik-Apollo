@@ -9,6 +9,7 @@ import static frc.lib.lib2706.networktables.NTUtil.doublePubFast;
 import com.revrobotics.CANSparkBase.IdleMode;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.DoublePublisher;
@@ -172,6 +173,15 @@ public abstract class SwerveModuleAbstract {
      * @param isOpenLoop   A boolean indicating whether the control is open loop or not.
      */
     public abstract void setDesiredState(SwerveModuleState desiredState, boolean isOpenLoop);
+
+    /**
+     * Sets the drive voltage and steering angle for the swerve module.
+     * <p> This is great for characterizing the swerve chassis.
+     *
+     * @param driveVolts The drive voltage to be applied to the module.
+     * @param steeringAngle The steering angle for the module.
+     */
+    public abstract void setVolts(double driveVolts, Rotation2d steeringAngle);
 
     /**
      * Gets the current state of the swerve module.

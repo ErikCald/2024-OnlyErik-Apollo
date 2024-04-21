@@ -186,7 +186,9 @@ public final class Config {
 
     public static final class GeneralConfig {
         public static final boolean enableTunableData = false;
+
         public static final double joystickDeadband = 0.1;
+        public static final boolean convertXYToPolar = true;
 
         public static final int revMaxRetries = 5;
         public static final int ctreMaxRetries = 5;
@@ -334,9 +336,10 @@ public final class Config {
     public static final class SwerveConfig {
         public static final int numSwerveModules = 4;
 
-        public static final double trackWidth = Units.inchesToMeters(25.787);
-        public static final double wheelBase = Units.inchesToMeters(20.472);
-        public static final double wheelDiameter = Units.inchesToMeters(3.884);
+        public static final double trackWidthX = Units.inchesToMeters(20.472);
+        public static final double trackWidthY = Units.inchesToMeters(25.787);
+        public static final double drivebaseRadius = Math.hypot(trackWidthX, trackWidthY) / 2.0;
+        public static final double wheelDiameter = 0.0987; // meters
         public static final double wheelRadius = wheelDiameter / 2.0;
         public static final double wheelCircumference = wheelDiameter * Math.PI;
 
@@ -350,10 +353,10 @@ public final class Config {
         public static final double syncRadTol = Math.toRadians(1);
 
         public static final Translation2d[] moduleLocations = {
-            new Translation2d(wheelBase / 2.0, trackWidth / 2.0),
-            new Translation2d(wheelBase / 2.0, -trackWidth / 2.0),
-            new Translation2d(-wheelBase / 2.0, trackWidth / 2.0),
-            new Translation2d(-wheelBase / 2.0, -trackWidth / 2.0)
+            new Translation2d(trackWidthX / 2.0, trackWidthY / 2.0),
+            new Translation2d(trackWidthX / 2.0, -trackWidthY / 2.0),
+            new Translation2d(-trackWidthX / 2.0, trackWidthY / 2.0),
+            new Translation2d(-trackWidthX / 2.0, -trackWidthY / 2.0)
         };
 
         public static final SwerveDriveKinematics swerveKinematics =
@@ -387,9 +390,9 @@ public final class Config {
         public static final double driveIZone = robotSpecific(0.0, 0.0);
 
         /* Drive Motor Characterization Values Changed */
-        public static final double driveKS = robotSpecific(0.667, 0.4); // Volts for static friction
-        public static final double driveKV = robotSpecific(4.0, 3.1); // Volts per mps
-        public static final double driveKA = robotSpecific(0.5, 0.0); // Volts per mps^2 (NOT USED)
+        public static final double driveKS = robotSpecific(0.667, 0.338); // Volts for static friction
+        public static final double driveKV = robotSpecific(4.0, 3.27338); // Volts per mps
+        public static final double driveKA = robotSpecific(0.0, 0.0); // Volts per mps^2 (NOT USED)
 
         public static final double driveVelAllowableError = 0.001; // mps
         public static final double steerPosAllowableError = Math.toRadians(0.01);
@@ -671,6 +674,7 @@ public final class Config {
                 shooterTable = NetworkTableInstance.getDefault().getTable("Shooter"),
                 armTable = NetworkTableInstance.getDefault().getTable("Arm"),
                 swerveTable = NetworkTableInstance.getDefault().getTable("Swerve"),
+                characterizingTable = NetworkTableInstance.getDefault().getTable("Characterizing"),
                 climberTable = NetworkTableInstance.getDefault().getTable("Climber"),
                 intakeTable = NetworkTableInstance.getDefault().getTable("Intake"),
                 visionTable = NetworkTableInstance.getDefault().getTable("Vision");

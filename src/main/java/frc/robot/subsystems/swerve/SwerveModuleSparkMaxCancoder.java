@@ -249,6 +249,19 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
     }
 
     /**
+     * Sets the drive voltage and steering angle for the swerve module.
+     * <p> This is great for characterizing the swerve chassis.
+     *
+     * @param driveVolts The drive voltage to be applied to the module.
+     * @param steeringAngle The steering angle for the module.
+     */
+    @Override
+    public void setVolts(double driveVolts, Rotation2d steeringAngle) {
+        driveMotor.setVoltage(driveVolts);
+        setAngle(steeringAngle);
+    }
+
+    /**
      * Sets the speed of the swerve module based on the desired state.
      *
      * @param desiredState The desired state of the swerve module.
