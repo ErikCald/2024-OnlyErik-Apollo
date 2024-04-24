@@ -4,12 +4,16 @@
       "/FMSInfo": "FMSInfo",
       "/Shuffleboard/ArmDisplay/ArmDisplayMech": "Mechanism2d",
       "/Shuffleboard/SoftwareDebugging/CommandScheduler": "Scheduler",
+      "/SmartDashboard/Auto Chooser": "String Chooser",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/command reset id": "Command"
     }
   },
   "NetworkTables": {
     "transitory": {
+      "SelectAuto": {
+        "open": true
+      },
       "Shuffleboard": {
         "ArmDisplay": {
           "ArmDisplayMech": {
@@ -17,6 +21,15 @@
           },
           "open": true
         }
+      },
+      "SmartDashboard": {
+        "Auto Chooser": {
+          "open": true,
+          "string[]##v_/SmartDashboard/Auto Chooser/options": {
+            "open": true
+          }
+        },
+        "open": true
       },
       "Swerve": {
         "Drive": {

@@ -676,6 +676,7 @@ public final class Config {
                 armTable = NetworkTableInstance.getDefault().getTable("Arm"),
                 swerveTable = NetworkTableInstance.getDefault().getTable("Swerve"),
                 characterizingTable = NetworkTableInstance.getDefault().getTable("Characterizing"),
+                pathfindingTable = NetworkTableInstance.getDefault().getTable("PathFinding"),
                 climberTable = NetworkTableInstance.getDefault().getTable("Climber"),
                 intakeTable = NetworkTableInstance.getDefault().getTable("Intake"),
                 visionTable = NetworkTableInstance.getDefault().getTable("Vision");

@@ -7,11 +7,11 @@ package frc.robot.subsystems.misc;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import frc.lib.lib6328.VirtualSubsystem;
 import frc.robot.Config.RioConfig;
 
-public class AnalogSelectorSubsystem extends SubsystemBase {
+public class AnalogSelectorSubsystem extends VirtualSubsystem {
 
     // network table publisher for analog switch
     private DoublePublisher analogSwitchIndex;

@@ -14,10 +14,10 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringArrayPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib6328.Alert;
 import frc.lib.lib6328.Alert.AlertType;
+import frc.lib.lib6328.VirtualSubsystem;
 import frc.robot.Config.CANID;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ import java.util.Map;
  *
  * This will only check 1 sparkmax each robot cycle to avoid spamming the can bus all at once
  */
-public class SparkMaxManagerSubsystem extends SubsystemBase {
+public class SparkMaxManagerSubsystem extends VirtualSubsystem {
     private static SparkMaxManagerSubsystem instance;
     private final ArrayList<SparkMaxManager> m_sparkmaxManagers = new ArrayList<>();
     private final NetworkTable errorTable;

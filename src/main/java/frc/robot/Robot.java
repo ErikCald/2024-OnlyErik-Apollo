@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
+import frc.lib.lib6328.VirtualSubsystem;
 import frc.robot.Config.CANID;
 import frc.robot.Config.RobotID;
 import frc.robot.robotcontainers.ApolloContainer;
@@ -17,6 +18,7 @@ import frc.robot.robotcontainers.BeetleContainer;
 import frc.robot.robotcontainers.PoseidonContainer;
 import frc.robot.robotcontainers.RobotContainer;
 import frc.robot.subsystems.arm.ArmSubsystem;
+import frc.robot.subsystems.swerve.PathPlannerSubsystem;
 import frc.robot.subsystems.vision.PhotonSubsystem;
 
 import org.littletonrobotics.urcl.URCL;
@@ -50,7 +52,7 @@ public class Robot extends TimedRobot {
 
         // Silence joystick warnings if in simulation
         DriverStation.silenceJoystickConnectionWarning(Robot.isSimulation());
-
+        PathPlannerSubsystem.getInstance();
         // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
         // autonomous chooser on the dashboard.
         createRobotContainer();
@@ -101,6 +103,7 @@ public class Robot extends TimedRobot {
         // commands, running already-scheduled commands, removing finished or interrupted commands,
         // and running subsystem periodic() methods.  This must be called from the robot's periodic
         // block in order for anything in the Command-based framework to work.
+        VirtualSubsystem.periodicAll();
         CommandScheduler.getInstance().run();
     }
 
