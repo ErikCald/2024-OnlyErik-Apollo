@@ -28,8 +28,7 @@
           "string[]##v_/SmartDashboard/Auto Chooser/options": {
             "open": true
           }
-        },
-        "open": true
+        }
       },
       "Swerve": {
         "Drive": {
@@ -42,8 +41,7 @@
         },
         "double[]##v_/Swerve/EstimatedPose": {
           "open": true
-        },
-        "open": true
+        }
       },
       "SwerveChassis": {
         "double[]##v_/SwerveChassis/Pose ": {

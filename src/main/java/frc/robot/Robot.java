@@ -19,7 +19,6 @@ import frc.robot.robotcontainers.PoseidonContainer;
 import frc.robot.robotcontainers.RobotContainer;
 import frc.robot.subsystems.arm.ArmSubsystem;
 import frc.robot.subsystems.swerve.PathPlannerSubsystem;
-import frc.robot.subsystems.vision.PhotonSubsystem;
 
 import org.littletonrobotics.urcl.URCL;
 import org.photonvision.PhotonCamera;
@@ -120,7 +119,6 @@ public class Robot extends TimedRobot {
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
         ArmSubsystem.getInstance().resetProfiledPIDController();
-        PhotonSubsystem.getInstance().resetTagAtBootup();
 
         // schedule the autonomous command (example)
         if (m_autonomousCommand != null) {
@@ -143,7 +141,6 @@ public class Robot extends TimedRobot {
         }
 
         ArmSubsystem.getInstance().resetProfiledPIDController();
-        PhotonSubsystem.getInstance().resetTagAtBootup();
     }
 
     /** This function is called periodically during operator control. */

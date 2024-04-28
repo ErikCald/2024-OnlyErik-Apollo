@@ -3,7 +3,6 @@ package frc.robot;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.revrobotics.CANSparkBase.IdleMode;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -17,6 +16,8 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 
 import frc.lib.lib254.SwerveModuleLimits;
+import frc.lib.lib2706.controllers.PIDConfig;
+import frc.lib.lib2706.controllers.ProfiledPIDConfig;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 
 import java.io.BufferedReader;
@@ -24,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public final class Config {
@@ -204,127 +204,22 @@ public final class Config {
     }
 
     public static final class PhotonConfig {
-        public static boolean USE_3D_TAGS = true;
-        public static final List<Integer> ALLOWED_TAGS_3D = List.of(3, 4, 7, 8);
+        public enum PhotonCameraConfig {
+            FRONT_INTAKE("HD_USB_CAMERA", new Transform3d()),
+            BACK_APRILTAG(
+                    "FrontApriltagOV9281",
+                    new Transform3d(
+                            -0.3375,
+                            0,
+                            0.23,
+                            new Rotation3d(0, Math.toRadians(-33), Math.toRadians(180))));
 
-        public static final double CAMERA_HEIGHT = 0.215;
-        public static final Rotation2d CAMERA_PITCH = Rotation2d.fromDegrees(33);
-        // x is forwards, y is sideways with +y being left, rotation probobly if + left too
-        public static final Pose2d cameraOffset =
-                new Pose2d(new Translation2d(-0.1, 0), Rotation2d.fromDegrees(180));
-        // public static final Pose2d cameraOffsetRed = new Pose2d(new Translation2d(-0.1, 0),
-        // Rotation2d.fromDegrees(0));
+            public final String cameraName;
+            public final Transform3d cameraOffset;
 
-        public static final Transform3d cameraTransform =
-                new Transform3d(
-                        -(0.865 / 2 - 0.095),
-                        0,
-                        0.23,
-                        new Rotation3d(0, Math.toRadians(-33), Math.toRadians(180)));
-
-        // networkTableName
-        public static final String apriltagCameraName = "FrontApriltagOV9281";
-        public static final String networkTableName = "PhotonCamera";
-        public static final String frontCameraName = "HD_USB_CAMERA";
-        // data max
-        public static final int maxNumSamples = 10;
-
-        // these are the heights for the apriltags 3, 4, 5, 6, 7, 8
-        public static final double[] APRIL_HEIGHTS = {1.32, 1.32, 1.22, 1.22, 1.32, 1.32};
-        public static final double POS_TOLERANCE = 0.01; // meters
-        public static final double ANGLE_TOLERANCE = Math.toRadians(1.0);
-        public static final double WAYPOINT_POS_TOLERANCE = 0.2; // meters
-        public static final double WAYPOINT_ANGLE_TOLERANCE = Math.toRadians(10.0);
-        public static final double VEL_TOLERANCE = 0.1 * 4;
-
-        public static enum PhotonPositions {
-            RIGHT_SPEAKER_RED(
-                    4,
-                    new Translation2d(-0.937, 0.937),
-                    new Translation2d(-0.637, 0.637),
-                    Rotation2d.fromDegrees(-60)),
-            MIDDLE_SPEAKER_RED(
-                    4,
-                    new Translation2d(-1.3, 0),
-                    new Translation2d(-0.95, 0),
-                    Rotation2d.fromDegrees(0)),
-            LEFT_SPEAKER_BLUE(
-                    7,
-                    new Translation2d(0.937, 0.937),
-                    new Translation2d(0.637, 0.637),
-                    Rotation2d.fromDegrees(-120)),
-            MIDDLE_SPEAKER_BLUE(
-                    7,
-                    new Translation2d(1.20, 0),
-                    new Translation2d(0.90, 0),
-                    Rotation2d.fromDegrees(180)),
-            TEST(4, new Translation2d(-2, 0), new Translation2d(-1, 0), Rotation2d.fromDegrees(0)),
-            AMP_RED(
-                    5,
-                    new Translation2d(0, -0.70),
-                    new Translation2d(0, -0.5),
-                    Rotation2d.fromDegrees(90)),
-            AMP_BLUE(
-                    6,
-                    new Translation2d(0, -0.30),
-                    new Translation2d(0, 0.05),
-                    Rotation2d.fromDegrees(90)),
-
-            // COMPETITION USE
-            FAR_SPEAKER_RED(4, new Translation2d(-3.6, 0), Rotation2d.fromDegrees(180)),
-            FAR_SPEAKER_BLUE(7, new Translation2d(3.6, 0), Rotation2d.fromDegrees(0)),
-
-            PODIUM_SOURCESIDE_BLUE(8, new Translation2d(3.2, -1.5), Rotation2d.fromDegrees(-33)),
-            PODIUM_SOURCESIDE_RED(
-                    3, new Translation2d(-3.2, -1.5), Rotation2d.fromDegrees(180 + 33)),
-
-            // NOT FULLY TESTED
-            FAR_SPEAKER_RED_SIDE_TAG(
-                    3,
-                    new Translation2d(-2.5, 0),
-                    new Translation2d(-2.1, 0.58),
-                    Rotation2d.fromDegrees(0)),
-            FAR_SPEAKER_BLUE_SIDE_TAG(
-                    8,
-                    new Translation2d(2.4, 0),
-                    new Translation2d(2.1, -0.58),
-                    Rotation2d.fromDegrees(0)),
-
-            PODIUM_AMPSIDE_BLUE(7, new Translation2d(3.35, -0.65), Rotation2d.fromDegrees(-20)),
-            PODIUM_AMPSIDE_RED(
-                    4, new Translation2d(-3.35, -0.65), Rotation2d.fromDegrees(180 + 20)),
-
-            RIGHT_SPEAKER_BLUE(8, new Translation2d(1, -1.1), Rotation2d.fromDegrees(-55)),
-            LEFT_SPEAKER_RED(3, new Translation2d(-1, -1.1), Rotation2d.fromDegrees(180 + 55));
-
-            // 2.2 , 33 deg
-            // FAR_SPEAKER_BLUE at new Translation2d(2.35,-0.65), arm angle of 35.8 and shooter
-            // speed at 3750
-
-            public final int id;
-            public final boolean hasWaypoint;
-            public final Translation2d waypoint;
-            public final Translation2d destination;
-            public final Rotation2d direction;
-
-            PhotonPositions(
-                    int id,
-                    Translation2d waypoint,
-                    Translation2d destination,
-                    Rotation2d direction) {
-                this.id = id;
-                this.hasWaypoint = true;
-                this.waypoint = waypoint;
-                this.destination = destination;
-                this.direction = direction;
-            }
-
-            PhotonPositions(int id, Translation2d destination, Rotation2d direction) {
-                this.id = id;
-                this.hasWaypoint = false;
-                this.waypoint = null;
-                this.destination = destination;
-                this.direction = direction;
+            private PhotonCameraConfig(String name, Transform3d offset) {
+                cameraName = name;
+                cameraOffset = offset;
             }
         }
     }
@@ -349,7 +244,7 @@ public final class Config {
         public static final double discretizePeriodSecs =
                 GeneralConfig.loopPeriodSecs * robotSpecific(1.0, 3.0); // 0.02 * fudgeFactor
         public static final double syncMetersTol = Math.toRadians(1);
-        public static final double syncMPSTol = 1;
+        public static final double syncMPSTol = 0.01;
         public static final double syncRadTol = Math.toRadians(1);
 
         public static final Translation2d[] moduleLocations = {
@@ -405,8 +300,19 @@ public final class Config {
         public static final double steerVelConvFactor = steerConvFactor / 60.0;
 
         /* Swerve ProfiledPidController values */
+        public static final ProfiledPIDConfig translationPIDConfig =
+                new ProfiledPIDConfig(new PIDConfig(9, 0.5, 0.2, 0.3), 2.5, 4.5);
+        public static final ProfiledPIDConfig rotationPIDConfig =
+                new ProfiledPIDConfig(
+                        new PIDConfig(5.0, 0.5, 0.3, Math.toRadians(3)), 8 * Math.PI, 8 * Math.PI);
+
         public static final double translationAllowableError = 0.01;
         public static final double rotationAllowableError = Math.toRadians(0.7);
+
+        public static final double translationTolerance = 0.08;
+        public static final double angleTolerance = Math.toRadians(1.0);
+        public static final double velTolerance = 0.3;
+        public static final double angleVelTolerance = Math.toRadians(5.0);
 
         public static enum ModuleLimits {
             // NEO V1.0/V1.1 L1 Modules has a Drivetrain Free Speed of 12.5 ft/s or 3.81 m/s

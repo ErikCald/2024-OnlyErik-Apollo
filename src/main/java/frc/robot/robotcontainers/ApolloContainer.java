@@ -20,8 +20,6 @@ import frc.lib.lib2706.networktables.TunableDouble;
 import frc.robot.Config;
 import frc.robot.Config.ArmSetPoints;
 import frc.robot.Config.NTConfig;
-import frc.robot.Config.PhotonConfig;
-import frc.robot.Config.PhotonConfig.PhotonPositions;
 import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.Robot;
 import frc.robot.commands.BlingCommand;
@@ -29,7 +27,6 @@ import frc.robot.commands.BlingCommand.BlingColour;
 import frc.robot.commands.ClimberRPM;
 import frc.robot.commands.CombinedCommands;
 import frc.robot.commands.MakeIntakeMotorSpin;
-import frc.robot.commands.RotateAngleToVisionSupplier;
 import frc.robot.commands.RotateToAngle;
 import frc.robot.commands.RumbleJoystick;
 import frc.robot.commands.SetArm;
@@ -55,7 +52,7 @@ import frc.robot.subsystems.swerve.SwerveSubsystem;
  */
 public class ApolloContainer extends RobotContainer {
     /* Controllers */
-    // private final CommandXboxController driver = new CommandXboxController(0);
+    //     private final CommandXboxController driver = new CommandXboxController(0);
     // private final CommandXboxController operator = new CommandXboxController(1);
     // private final CommandXboxController testJoystick = new CommandXboxController(2);
 
@@ -152,10 +149,10 @@ public class ApolloContainer extends RobotContainer {
         driver.x().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(90)));
         driver.a().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(180)));
         driver.b().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(270)));
-        driver.rightTrigger()
-                .whileTrue(
-                        new RotateAngleToVisionSupplier(
-                                driver, "photonvision/" + PhotonConfig.frontCameraName));
+        // driver.rightTrigger()
+        //         .whileTrue(
+        //                 new RotateAngleToVisionSupplier(
+        //                         driver, "photonvision/" + PhotonConfig.frontCameraName));
 
         // Vision scoring commands with no intake, shooter, arm
         // driver.leftTrigger().whileTrue(new SelectByAllianceCommand( // Implement command group
@@ -170,14 +167,14 @@ public class ApolloContainer extends RobotContainer {
         //   PhotonSubsystem.getInstance().getAprilTagCommand(PhotonPositions.LEFT_SPEAKER_RED,
         // driver)));
 
-        driver.leftTrigger()
-                .whileTrue(
-                        CombinedCommands.centerSpeakerVisionShot(
-                                driver,
-                                PhotonPositions.FAR_SPEAKER_BLUE,
-                                PhotonPositions.FAR_SPEAKER_RED))
-                .onTrue(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.SLOW)))
-                .onFalse(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.MAX)));
+        // driver.leftTrigger()
+        //         .whileTrue(
+        //                 CombinedCommands.centerSpeakerVisionShot(
+        //                         driver,
+        //                         PhotonPositions.FAR_SPEAKER_BLUE,
+        //                         PhotonPositions.FAR_SPEAKER_RED))
+        //         .onTrue(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.SLOW)))
+        //         .onFalse(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.MAX)));
 
         // driver.leftTrigger().whileTrue(CombinedCommands.podiumSourceSideSpeakerVisionShot(driver,
         // PhotonPositions.PODIUM_SOURCESIDE_BLUE, PhotonPositions.PODIUM_SOURCESIDE_RED))

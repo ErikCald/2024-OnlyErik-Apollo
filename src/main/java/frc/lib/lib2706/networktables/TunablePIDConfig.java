@@ -50,6 +50,26 @@ public class TunablePIDConfig {
     }
 
     /**
+     * Constructs a TunablePIDConfig object.
+     *
+     * @param setConfig The consumer function to set the PID configuration.
+     * @param table     The NetworkTable used for tuning the PID gains and feedforward values.
+     * @param pidConfig The PIDConfig object to use for the initial values.
+     */
+    public TunablePIDConfig(
+            Consumer<PIDConfig> setConfig, NetworkTable table, PIDConfig pidConfig) {
+        this(
+                setConfig,
+                table,
+                pidConfig.kF,
+                pidConfig.kP,
+                pidConfig.kI,
+                pidConfig.kD,
+                pidConfig.iZone,
+                pidConfig.pidSlot);
+    }
+
+    /**
      * Updates the PID controller with the current values of the tunable parameters.
      */
     private void updateValues() {

@@ -1,5 +1,7 @@
 package frc.robot.subsystems.swerve;
 
+import java.util.Optional;
+
 import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
@@ -7,16 +9,18 @@ import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.IntegerEntry;
@@ -26,24 +30,21 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
 import frc.lib.lib254.SwerveSetpoint;
 import frc.lib.lib254.SwerveSetpointGenerator;
 import frc.lib.lib2706.GeomUtil;
 import frc.lib.lib2706.networktables.AdvantageUtil;
 import frc.lib.lib2706.networktables.NTUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
+import frc.lib.lib2706.networktables.TunableProfiledPIDConfig;
 import frc.lib.lib2706.swerve.PoseBuffer;
 import frc.robot.Config;
 import frc.robot.Config.CANID;
 import frc.robot.Config.GeneralConfig;
 import frc.robot.Config.NTConfig;
-import frc.robot.Config.PhotonConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
 import frc.robot.Config.SwerveConfig.ModuleLimits;
-
-import java.util.Optional;
 
 /**
  * The SwerveSubsystem class represents the subsystem responsible for controlling the swerve drive of the robot.
@@ -56,7 +57,7 @@ public class SwerveSubsystem extends SubsystemBase {
     private SwerveSetpoint m_currentSetpoint = new SwerveSetpoint(SwerveConfig.numSwerveModules);
     private ModuleLimits m_moduleLimits = ModuleLimits.TELEOP_FAST;
 
-    private final SwerveDriveOdometry m_odometry;
+    private final SwerveDrivePoseEstimator m_poseEstimator;
     private final SwerveModuleAbstract[] m_modules;
     private final PoseBuffer m_poseBuffer;
     private int modSyncCounter = 0;
@@ -76,6 +77,7 @@ public class SwerveSubsystem extends SubsystemBase {
     private final IntegerEntry pubNumSyncs;
 
     private final TunableDouble tunableHeadingkP;
+    private final TunableProfiledPIDConfig tunableXPid, tunableYPid, tunableRotPid;
 
     private static SwerveSubsystem instance;
 
@@ -135,8 +137,8 @@ public class SwerveSubsystem extends SubsystemBase {
                 new SwerveSetpointGenerator(
                         SwerveConfig.swerveKinematics, SwerveConfig.moduleLocations);
 
-        m_odometry =
-                new SwerveDriveOdometry(
+        m_poseEstimator =
+                new SwerveDrivePoseEstimator(
                         Config.SwerveConfig.swerveKinematics,
                         getYaw(),
                         getPositions(),
@@ -176,21 +178,31 @@ public class SwerveSubsystem extends SubsystemBase {
 
         m_poseBuffer = new PoseBuffer();
 
+        /* Setup ProfiledPIDControllers */
+        m_pidX = SwerveConfig.translationPIDConfig.createController();
+        m_pidY = SwerveConfig.translationPIDConfig.createController();
+        m_pidRot = SwerveConfig.rotationPIDConfig.createController();
+        m_pidRot.enableContinuousInput(-Math.PI, Math.PI);
+
         /* Setup tunable constants */
         tunableHeadingkP =
                 new TunableDouble(
                         "HoldHeadingkP", NTConfig.swerveTable, SwerveConfig.holdHeadingkP);
-
-        Constraints xyConstraints = new Constraints(2.5, 4.5);
-        Constraints rotConstraints = new Constraints(8 * Math.PI, 8 * Math.PI);
-        m_pidX = new ProfiledPIDController(9, 0.5, 0.2, xyConstraints);
-        m_pidY = new ProfiledPIDController(9, 0.5, 0.2, xyConstraints);
-        m_pidRot = new ProfiledPIDController(5.0, 0.5, 0.3, rotConstraints);
-        m_pidRot.enableContinuousInput(-Math.PI, Math.PI);
-
-        m_pidX.setIZone(0.3);
-        m_pidY.setIZone(0.3);
-        m_pidRot.setIZone(Math.toRadians(3));
+        tunableXPid =
+                new TunableProfiledPIDConfig(
+                        (config) -> config.applyConfig(m_pidX),
+                        NTConfig.swerveTable.getSubTable("PidX"),
+                        SwerveConfig.translationPIDConfig);
+        tunableYPid =
+                new TunableProfiledPIDConfig(
+                        (config) -> config.applyConfig(m_pidY),
+                        NTConfig.swerveTable.getSubTable("PidY"),
+                        SwerveConfig.translationPIDConfig);
+        tunableRotPid =
+                new TunableProfiledPIDConfig(
+                        (config) -> config.applyConfig(m_pidRot),
+                        NTConfig.swerveTable.getSubTable("PidRot"),
+                        SwerveConfig.rotationPIDConfig);
 
         /* PID to hold the heading stable */
         m_holdHeadingPid = new PIDController(tunableHeadingkP.get(), 0, 0);
@@ -327,7 +339,7 @@ public class SwerveSubsystem extends SubsystemBase {
      * @return the current pose as a Pose2d object
      */
     public Pose2d getPose() {
-        return m_odometry.getPoseMeters();
+        return m_poseEstimator.getEstimatedPosition();
     }
 
     /**
@@ -336,7 +348,25 @@ public class SwerveSubsystem extends SubsystemBase {
      * @param pose The desired pose to set the odometry to.
      */
     public void resetOdometry(Pose2d pose) {
-        m_odometry.resetPosition(getYaw(), getPositions(), pose);
+        m_poseEstimator.resetPosition(getYaw(), getPositions(), pose);
+    }
+
+    /**
+     * Adds a vision measurement to the Kalman Filter. This will correct the odometry pose estimate
+     * while still accounting for measurement noise.
+     *
+     * @param visionRobotPoseMeters The pose of the robot as measured by the vision camera.
+     * @param timestampSeconds The timestamp of the vision measurement in seconds.
+     * @param visionMeasurementStdDevs Standard deviations of the vision pose measurement (x position
+     *     in meters, y position in meters, and heading in radians). Increase these numbers to trust
+     *     the vision pose measurement less.
+     */
+    public void addVisionMeasurement(
+            Pose2d visionRobotPoseMeters,
+            double timestampSeconds,
+            Matrix<N3, N1> visionMeasurementStdDevs) {
+        m_poseEstimator.addVisionMeasurement(
+                visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs);
     }
 
     /**
@@ -436,7 +466,11 @@ public class SwerveSubsystem extends SubsystemBase {
     public Command getDriveToPoseCommand(Pose2d desiredPose) {
         return runOnce(() -> resetDriveToPose())
                 .andThen(run(() -> driveToPose(desiredPose)))
-                .until(() -> isAtPose(PhotonConfig.POS_TOLERANCE, PhotonConfig.ANGLE_TOLERANCE));
+                .until(
+                        () ->
+                                isAtPose(
+                                        SwerveConfig.translationTolerance,
+                                        SwerveConfig.angleTolerance));
     }
 
     /**
@@ -532,21 +566,27 @@ public class SwerveSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        // Get current speeds and positions
         ChassisSpeeds fieldSpeeds = getFieldRelativeSpeeds();
         SwerveModulePosition[] positions = getPositions();
         SwerveModuleState[] states = getStates();
 
-        for (SwerveModuleAbstract mod : m_modules) {
-            mod.periodic();
-        }
-
+        // Simulate the heading if we are in simulation mode
         if (RobotID.getActiveID().equals(RobotID.SIMULATION)) {
             double addRadians = fieldSpeeds.omegaRadiansPerSecond * GeneralConfig.loopPeriodSecs;
             m_simHeading = m_simHeading.plus(new Rotation2d(addRadians));
         }
 
-        m_odometry.update(getYaw(), positions);
+        // Update the pose estimator with encoder positions and gyro angle
+        m_poseEstimator.update(getYaw(), positions);
+        m_poseBuffer.addPoseToBuffer(getPose());
 
+        // Run periodic on all swerve modules
+        for (SwerveModuleAbstract mod : m_modules) {
+            mod.periodic();
+        }
+
+        // Check if the swerve modules are synchronized and sync them if they are not
         if (DriverStation.isDisabled() && !isChassisMoving(0.01) && !areModulesRotating(2)) {
             if (++modSyncCounter > 6 && isSwerveNotSynched()) {
                 synchSwerve();
@@ -557,12 +597,13 @@ public class SwerveSubsystem extends SubsystemBase {
             modSyncCounter = 0;
         }
 
-        m_poseBuffer.addPoseToBuffer(getPose());
-
         // Check if tunable values have changed and update them if so
         SwerveModuleAbstract.updateTunableModuleConstants();
         TunableDouble.ifChanged(
                 hashCode(), () -> m_holdHeadingPid.setP(tunableHeadingkP.get()), tunableHeadingkP);
+        tunableXPid.checkForUpdates();
+        tunableYPid.checkForUpdates();
+        tunableRotPid.checkForUpdates();
 
         // Update NetworkTables
         pubPoseRot.accept(getPose().getRotation().getDegrees());

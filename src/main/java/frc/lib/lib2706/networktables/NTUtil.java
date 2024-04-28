@@ -24,6 +24,20 @@ public class NTUtil {
     }
 
     /**
+     * Create a PubSubOption object to publish data fast.
+     */
+    public static PubSubOption fastPeriodic() {
+        return PubSubOption.periodic(FAST_PERIOD);
+    }
+
+    /**
+     * Create a PubSubOption object to publish data slowly.
+     */
+    public static PubSubOption slowPeriodic() {
+        return PubSubOption.periodic(SLOW_PERIOD);
+    }
+
+    /**
      * Creates a DoublePublisher object for publishing double values to a specific topic.
      *
      * @param moduleTable the NetworkTable object representing the table to publish the values to

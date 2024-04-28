@@ -225,7 +225,8 @@ public class SwerveModuleSparkMaxCancoder extends SwerveModuleAbstract {
         boolean shouldSync =
                 m_scheduleSyncEncoders
                         && Math.abs(desiredState.speedMetersPerSecond) < SwerveConfig.syncMPSTol
-                        && Math.abs(MathUtil.angleModulus(angleError)) < SwerveConfig.syncRadTol;
+                        && Math.abs(MathUtil.angleModulus(angleError)) < SwerveConfig.syncRadTol
+                        && Math.abs(getDriveVelocity()) < SwerveConfig.syncMPSTol;
         if (shouldSync) {
             setNEOEncoderFromCancoder();
         }
