@@ -27,7 +27,7 @@ public class SetArm extends Command {
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        ArmSubsystem.getInstance().setJointAngle(Math.toRadians(angleDegree.getAsDouble()));
+        ArmSubsystem.getInstance().setAngle(Math.toRadians(angleDegree.getAsDouble()));
     }
 
     // Called once the command ends or is interrupted.

@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 
 import frc.robot.Config;
-import frc.robot.Config.ArmSetPoints;
+import frc.robot.Config.ArmConfig.ArmSetpoints;
 import frc.robot.commands.BlingCommand.BlingColour;
 import frc.robot.subsystems.mechanisms.ShooterSubsystem;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
@@ -96,8 +96,9 @@ public class CombinedCommands {
                 new MakeIntakeMotorSpin(9.0, 0),
                 new SetArm(
                         () ->
-                                ArmSetPoints.INTAKE
-                                        .angleDeg)); // Continue to hold arm in the correct position
+                                ArmSetpoints.INTAKE
+                                        .getDegrees())); // Continue to hold arm in the correct
+        // position
     }
 
     /**

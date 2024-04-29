@@ -58,7 +58,7 @@ public class SubwooferShot extends Command {
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        ArmSubsystem.getInstance().setJointAngle(m_armAngleRad);
+        ArmSubsystem.getInstance().setAngle(m_armAngleRad);
         ShooterSubsystem.getInstance().setRPM(m_shooterRPM);
 
         if (!hasPassedShortPeriod && m_timer.hasElapsed(SHORT_PERIOD)) {

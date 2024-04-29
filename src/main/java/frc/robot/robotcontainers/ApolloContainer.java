@@ -18,7 +18,7 @@ import frc.lib.lib2706.button.FakeCommandXboxController.FakeControllerType;
 import frc.lib.lib2706.button.XBoxControllerUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
 import frc.robot.Config;
-import frc.robot.Config.ArmSetPoints;
+import frc.robot.Config.ArmConfig.ArmSetpoints;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.Robot;
@@ -188,7 +188,7 @@ public class ApolloContainer extends RobotContainer {
 
         //   // Score in speaker with vision using simple intake/shooter
         //   driver.rightBumper().whileTrue(CombinedCommands.simpleSpeakerScoreWithVision(driver,
-        // ArmSetPoints.SPEAKER_KICKBOT_SHOT, PhotonPositions.RIGHT_SPEAKER_BLUE,
+        // ArmSetpoints.SPEAKER_KICKBOT_SHOT, PhotonPositions.RIGHT_SPEAKER_BLUE,
         // PhotonPositions.RIGHT_SPEAKER_RED));
 
         // } else {
@@ -197,7 +197,7 @@ public class ApolloContainer extends RobotContainer {
 
         //   // Score in speaker with vision using stateful intake/shooter
         //   driver.leftBumper().whileTrue(CombinedCommands.statefulSpeakerScoreWithVision(driver,
-        // ArmSetPoints.SPEAKER_KICKBOT_SHOT, PhotonPositions.RIGHT_SPEAKER_BLUE,
+        // ArmSetpoints.SPEAKER_KICKBOT_SHOT, PhotonPositions.RIGHT_SPEAKER_BLUE,
         // PhotonPositions.RIGHT_SPEAKER_RED));
         // }
 
@@ -206,10 +206,10 @@ public class ApolloContainer extends RobotContainer {
          * KingstonV1: https://drive.google.com/file/d/18HyIpIeW08CC6r6u-Z74xBWRv9opHnoZ
          */
         // Arm
-        operator.y().onTrue(new SetArm(() -> ArmSetPoints.AMP.angleDeg)); // Amp
-        operator.b().onTrue(new SetArm(() -> ArmSetPoints.IDLE.angleDeg)); // Idle
-        operator.a().onTrue(new SetArm(() -> ArmSetPoints.NO_INTAKE.angleDeg)); // Pickup
-        operator.x().onTrue(new SetArm(() -> ArmSetPoints.SPEAKER_KICKBOT_SHOT.angleDeg));
+        operator.y().onTrue(new SetArm(() -> ArmSetpoints.AMP.getDegrees())); // Amp
+        operator.b().onTrue(new SetArm(() -> ArmSetpoints.IDLE.getDegrees())); // Idle
+        operator.a().onTrue(new SetArm(() -> ArmSetpoints.NO_INTAKE.getDegrees())); // Pickup
+        operator.x().onTrue(new SetArm(() -> ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees()));
         // Climber
         operator.leftTrigger(0.10)
                 .and(operator.back())
@@ -234,7 +234,7 @@ public class ApolloContainer extends RobotContainer {
             // operator.leftTrigger(0.3).whileTrue(
             operator.leftBumper()
                     .whileTrue(CombinedCommands.armIntake())
-                    .onFalse(new SetArm(() -> ArmSetPoints.NO_INTAKE.angleDeg))
+                    .onFalse(new SetArm(() -> ArmSetpoints.NO_INTAKE.getDegrees()))
                     .onFalse(
                             new MakeIntakeMotorSpin(9.0, 0)
                                     .withTimeout(1)
@@ -245,13 +245,13 @@ public class ApolloContainer extends RobotContainer {
             // Shoot note with leftBumper
             // operator.rightBumper().whileTrue(CombinedCommands.simpleShootNoteSpeaker(1))
             //                       .onTrue(new
-            // SetArm(()->ArmSetPoints.SPEAKER_KICKBOT_SHOT.angleDeg));
+            // SetArm(()->ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees()));
 
             operator.rightBumper()
                     .onTrue(
                             new SubwooferShot(
                                     operator.rightBumper(),
-                                    ArmSetPoints.SPEAKER_KICKBOT_SHOT.angleDeg,
+                                    ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees(),
                                     2820,
                                     2700));
 

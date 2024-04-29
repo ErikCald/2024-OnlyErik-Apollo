@@ -15,6 +15,10 @@ import com.revrobotics.SparkAbsoluteEncoder.Type;
 import com.revrobotics.SparkPIDController;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.IntegerPublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -24,6 +28,7 @@ import frc.lib.lib2706.SubsystemChecker;
 import frc.lib.lib2706.SubsystemChecker.SubsystemType;
 import frc.lib.lib2706.controllers.PIDConfig;
 import frc.lib.lib2706.controllers.ProfiledExternalPIDController;
+import frc.lib.lib2706.networktables.AdvantageUtil;
 import frc.lib.lib2706.networktables.NTUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.networktables.TunablePIDConfig;
@@ -51,6 +56,7 @@ public class ArmSubsystem extends SubsystemBase {
     private final DoublePublisher pubCurrSetpoint, pubGoalSetpoint;
     private final DoublePublisher pubMeasPos, pubMeasVel;
     private final IntegerPublisher pubActivePIDSlot;
+    private final DoubleArrayPublisher pubArmPose = NTUtil.doubleArrayPubFast(dataTable, "ArmPose");
 
     public static ArmSubsystem getInstance() {
         if (instance == null) {
@@ -164,7 +170,8 @@ public class ArmSubsystem extends SubsystemBase {
         pubGoalSetpoint = NTUtil.doublePubFast(dataTable, "GoalSetpoint (deg)");
         pubMeasPos = NTUtil.doublePubFast(dataTable, "MeasPos (deg)");
         pubMeasVel = NTUtil.doublePubFast(dataTable, "MeasVel (deg/s)");
-        pubActivePIDSlot = dataTable.getIntegerTopic("ActivePIDSlot").publish(NTUtil.fastPeriodic());
+        pubActivePIDSlot =
+                dataTable.getIntegerTopic("ActivePIDSlot").publish(NTUtil.fastPeriodic());
 
         configureSpark("Arm set CANTimeout", () -> m_sparkmax.setCANTimeout(0));
         SparkMaxManagerSubsystem.getInstance()
@@ -210,6 +217,7 @@ public class ArmSubsystem extends SubsystemBase {
         // Publish measurements to network tables
         pubMeasPos.accept(Math.toDegrees(getAngleRad()));
         pubMeasVel.accept(Math.toDegrees(getVelocityRadPS()));
+        publishAdvantageScopeArmPose(getAngleRad());
 
         // Update tunable pid values
         TunableDouble.ifChanged(
@@ -289,6 +297,19 @@ public class ArmSubsystem extends SubsystemBase {
      */
     public double getVelocityRadPS() {
         return m_absEncoder.getVelocity();
+    }
+
+    /**
+     * Publishes the pose of the arm for AdvantageScope to display with the CAD model.
+     *
+     * @param angleDeg the angle in radians
+     */
+    public void publishAdvantageScopeArmPose(double angleRad) {
+        pubArmPose.accept(
+                AdvantageUtil.deconstruct(
+                        new Pose3d(
+                                new Translation3d(-0.15, 0, 0.375),
+                                new Rotation3d(0, -angleRad, 0))));
     }
 
     /**
