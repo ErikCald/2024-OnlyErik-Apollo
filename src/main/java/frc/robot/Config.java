@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import frc.lib.lib254.SwerveModuleLimits;
 import frc.lib.lib2706.controllers.PIDConfig;
 import frc.lib.lib2706.controllers.ProfiledPIDConfig;
+import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 
 import java.io.BufferedReader;
@@ -428,85 +429,74 @@ public final class Config {
     }
 
     public class ArmConfig {
-        public static final int ARM_SPARK_CAN_ID = CANID.ARM.val();
-        public static final boolean SET_INVERTED = true;
-        public static final boolean setInvered = true;
-        public static final boolean INVERT_ENCODER = false;
-
-        public static final int CURRENT_LIMIT = 20;
+        public static final boolean invertMotor = true;
+        public static final boolean invertEncoder = true;
+        public static final int currentLimit = 20;
 
         public static final double shiftEncoderRange = 10;
-        // offset unit: degrees
-        public static final double armAbsEncoderOffset =
-                Math.toDegrees(3.20433) + 3.0 - shiftEncoderRange;
+        public static final double absEncoderOffset = Math.toDegrees(3.20433) + 3.0;
 
         public static final double MAX_ARM_ANGLE_DEG = 180;
         public static final double MIN_ARM_ANGLE_DEG = -2;
 
         // soft limit constant for bottom arm
-        public static final float arm_forward_limit =
+        public static final float forwardSoftLimit =
                 (float) Math.toRadians(MAX_ARM_ANGLE_DEG + shiftEncoderRange);
-        public static final float arm_reverse_limit =
+        public static final float reverseSoftLimit =
                 (float) Math.toRadians(MIN_ARM_ANGLE_DEG + shiftEncoderRange);
-        public static final boolean SOFT_LIMIT_ENABLE = true;
+        public static final boolean enableSoftLimit = true;
 
-        // PID constants
-        public static final double arm_kP = robotSpecific(2.700000, 0.0, 0.0, 1.4);
-        public static final double arm_kI = robotSpecific(0.0, 0.0, 0.0, 0.0003);
-        public static final double arm_kD = robotSpecific(0.800000, 0.0, 0.0, 0.9);
-        public static final double arm_kIz = robotSpecific(0.02, 0.0, 0.0, 0.3);
-        public static final double arm_kFF = 0.013;
-        public static final double min_output = -1;
-        public static final double max_output = 1;
+        // PID used to get to a setpoint
+        public static final PIDConfig pid0Config =
+                robotSpecific(
+                        new PIDConfig(0.013, 2.7, 0, 0.8, 0.02, 0),
+                        new PIDConfig(0.013, 2.7, 0, 0.8, 0.02, 0));
 
-        // PID constants for far shots
-        public static final double arm_far_kP = 6.0;
-        public static final double arm_far_kI = 0;
-        public static final double arm_far_kD = 6.0;
-        public static final double arm_far_kFF = 0.06;
-        public static final double arm_far_iZone = Math.toRadians(1.5);
+        // PID used to hold the arm steady at a setpoint
+        public static final PIDConfig pid1Config =
+                robotSpecific(
+                        new PIDConfig(0.06, 6.0, 0, 6.0, Math.toRadians(1.5), 1),
+                        new PIDConfig(0.06, 6.0, 0, 6.0, Math.toRadians(1.5), 1));
+        public static final PIDConfig pid2Config =
+                robotSpecific(
+                        new PIDConfig(0.0, 0.0, 0.0, 0.0, 0.0, 2),
+                        new PIDConfig(0.0, 0.0, 0.0, 0.0, 0.0, 2));
+        public static final PIDConfig pid3Config =
+                robotSpecific(
+                        new PIDConfig(0.0, 0.0, 0.0, 0.0, 0.0, 3),
+                        new PIDConfig(0.0, 0.0, 0.0, 0.0, 0.0, 3));
 
-        // ff calculations
-        public static final double gravitationalConstant =
-                389.0886; // inches/s/s which is equal to 9.81 m/s/s
-        public static final double ARM_FORCE = 11.29 * gravitationalConstant; // 11.29 lb
+        public static final ProfiledPIDConfig transportPIDConfig =
+                new ProfiledPIDConfig(pid0Config, Math.PI * 1.5, Math.PI * 1.5);
 
-        public static final double LENGTH_ARM_TO_COG = 14.56;
+        public static final double encoderGearRatio = 1.0; // 1:1 ratio between encoder and output
+        public static final double motorGearRatio = 60.0; // 60:1 ratio between motor and output
 
-        public static final double ARM_ENCODER_GEAR_RATIO = 1;
+        public static final double posConvFactor = 2 * Math.PI / encoderGearRatio; // radians
+        public static final double velConvFactor = posConvFactor / 60.0; // radians per second
 
-        // arm position unit: radians
-        public static final double armPositionConversionFactor =
-                2 * Math.PI / ARM_ENCODER_GEAR_RATIO;
-        // arm velocity unit: radians/sec
-        public static final double armVelocityConversionFactor = armPositionConversionFactor / 60.0;
+        public static final double voltsAtHorizontal = 0.000005;
 
-        public static final double MAX_VEL = Math.PI * 1.5;
-        public static final double MAX_ACCEL = Math.PI * 1.5;
+        public static enum ArmSetpoints {
+            IDLE(60.0),
+            INTAKE(-0.1),
+            SPEAKER_KICKBOT_SHOT(15.5),
+            NO_INTAKE(5.0),
+            SPEAKER_VISION_SHOT(33),
+            AMP(100);
 
-        public static final double MOMENT_TO_VOLTAGE = 0.000005;
+            private final TunableDouble tunable;
+            private final NetworkTable table = NTConfig.armTable.getSubTable("Setpoints (deg)");
 
-        // Arm Display values
-        public static final double LENGTH_METERS = 0.371475;
-    }
+            ArmSetpoints(double deg) {
+                tunable = new TunableDouble(name(), table, deg);
+            }
 
-    public static enum ArmSetPoints {
-        // @todo: to be calibrated
-        IDLE(60),
-        INTAKE(-0.1),
-        SPEAKER_KICKBOT_SHOT(15.5),
-        NO_INTAKE(5.0),
-        SPEAKER_VISION_SHOT(33),
-        AMP(100);
-
-        public final double angleDeg;
-
-        ArmSetPoints(double angleDeg) {
-            this.angleDeg = angleDeg;
+            public double getDegrees() {
+                return tunable.get();
+            }
         }
     }
-
-    public static final boolean tuningMode = true;
 
     public static final class ShooterConstants {
         public static final byte MOTOR_ID = (byte) CANID.SHOOTER.val();

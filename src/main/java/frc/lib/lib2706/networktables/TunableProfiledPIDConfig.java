@@ -73,7 +73,7 @@ public class TunableProfiledPIDConfig {
     /**
      * Updates the PID controller with the current values of the tunable parameters.
      */
-    private void updateValues() {
+    public void updateValues() {
         m_setConfig.accept(
                 new ProfiledPIDConfig(
                         m_currentPIDConfig, m_velConstraint.get(), m_accelConstraint.get()));

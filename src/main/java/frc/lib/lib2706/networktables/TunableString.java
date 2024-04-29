@@ -9,7 +9,7 @@ import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.networktables.StringEntry;
 import edu.wpi.first.networktables.StringTopic;
 
-import frc.robot.Config;
+import frc.robot.Config.GeneralConfig;
 import frc.robot.Config.NTConfig;
 
 import java.util.Arrays;
@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  * if not in tuning mode or the value is not in the dashboard.
  */
 public class TunableString implements Supplier<String> {
-    private static final boolean IN_TUNING_MODE = Config.tuningMode;
+    private static final boolean IN_TUNING_MODE = GeneralConfig.enableTunableData;
     private static final double ENTRY_PERIOD = NTConfig.SLOW_PERIODIC_SECONDS;
     private final StringEntry entry;
     private String defaultValue;

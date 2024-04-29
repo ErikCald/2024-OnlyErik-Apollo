@@ -9,7 +9,7 @@ import edu.wpi.first.networktables.DoubleTopic;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.PubSubOption;
 
-import frc.robot.Config;
+import frc.robot.Config.GeneralConfig;
 import frc.robot.Config.NTConfig;
 
 import java.util.Arrays;
@@ -23,7 +23,7 @@ import java.util.function.DoubleSupplier;
  * value not in dashboard.
  */
 public class TunableDouble implements DoubleSupplier {
-    private static final boolean IN_TUNING_MODE = Config.tuningMode;
+    private static final boolean IN_TUNING_MODE = GeneralConfig.enableTunableData;
     private static final double ENTRY_PERIOD = NTConfig.SLOW_PERIODIC_SECONDS;
     private final DoubleEntry entry;
     private double defaultValue;

@@ -79,4 +79,11 @@ public class PIDConfig {
     public PIDConfig(double kP, double kI, double kD, double iZone, int pidSlot) {
         this(0.0, kP, kI, kD, iZone, pidSlot);
     }
+
+    /**
+     * Constructs a new PIDConfig object with all zeros.
+     */
+    public PIDConfig() {
+        this(0.0, 0.0, 0.0, 0.0, 0.0, 0);
+    }
 }

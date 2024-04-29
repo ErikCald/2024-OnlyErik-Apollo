@@ -103,21 +103,6 @@ public class IntakeSubsystem extends SubsystemBase {
 
         SparkMaxManagerSubsystem.getInstance()
                 .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_intake);
-
-        // Must be the last thing in the constructor
-        burnFlash();
-    }
-
-    /**
-     * Save the configurations from flash to EEPROM.
-     */
-    private void burnFlash() {
-        try {
-            Thread.sleep(200);
-        } catch (Exception e) {
-        }
-
-        m_intake.burnFlash();
     }
 
     public boolean isFrontSensorActive() {
