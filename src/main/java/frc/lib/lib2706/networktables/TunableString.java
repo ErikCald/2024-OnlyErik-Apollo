@@ -4,10 +4,10 @@
 
 package frc.lib.lib2706.networktables;
 
-import edu.wpi.first.networktables.DoubleEntry;
-import edu.wpi.first.networktables.DoubleTopic;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.PubSubOption;
+import edu.wpi.first.networktables.StringEntry;
+import edu.wpi.first.networktables.StringTopic;
 
 import frc.robot.Config;
 import frc.robot.Config.NTConfig;
@@ -16,62 +16,64 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 
 /**
- * Class for a tunable double. Gets value from dashboard in tuning mode, returns default if not or
- * value not in dashboard.
+ * Class for a tunable String. Gets value from dashboard in tuning mode, or returns default
+ * if not in tuning mode or the value is not in the dashboard.
  */
-public class TunableDouble implements DoubleSupplier {
+public class TunableString implements Supplier<String> {
     private static final boolean IN_TUNING_MODE = Config.tuningMode;
     private static final double ENTRY_PERIOD = NTConfig.SLOW_PERIODIC_SECONDS;
-    private final DoubleEntry entry;
-    private double defaultValue;
-    private Map<Integer, Double> lastHasChangedValues = new HashMap<>();
+    private final StringEntry entry;
+    private String defaultValue;
+    private Map<Integer, String> lastHasChangedValues = new HashMap<>();
 
     /**
-     * Create a new TunableDouble with the default value
+     * Create a new TunableString with the default value
      *
      * @param topicName Name of the topic
      * @param table NetworkTable to use
      * @param defaultValue Default value
      */
-    public TunableDouble(String topicName, NetworkTable table, double defaultValue) {
+    public TunableString(String topicName, NetworkTable table, String defaultValue) {
         entry =
-                table.getDoubleTopic(topicName)
+                table.getStringTopic(topicName)
                         .getEntry(defaultValue, PubSubOption.periodic(ENTRY_PERIOD));
         initDefault(defaultValue);
     }
 
     /**
-     * Create a new TunableDouble with the default value
+     * Create a new TunableString with the default value
      *
      * @param dashboardKey Key on dashboard
      * @param defaultValue Default value
      */
-    public TunableDouble(DoubleTopic topic, double defaultValue) {
+    public TunableString(StringTopic topic, String defaultValue) {
         entry = topic.getEntry(defaultValue);
         initDefault(defaultValue);
     }
 
     /**
-     * Set the default value of the number. The default value can only be set once.
+     * Set the default value of the String.
+     * Will not overwrite any value set on the dashboard.
      *
      * @param defaultValue The default value
      */
-    public void initDefault(double defaultValue) {
+    public void initDefault(String defaultValue) {
         entry.setDefault(defaultValue);
         this.defaultValue = defaultValue;
     }
 
     /**
-     * Get the current value, from dashboard if available and in tuning mode.
+     * Get the current value. Will be from the dashboard if available and in tuning mode.
      *
      * @return The current value
      */
-    public double get() {
+    @Override
+    public String get() {
         if (IN_TUNING_MODE) {
-            return entry.getAsDouble();
+            return entry.get();
         } else {
             return defaultValue;
         }
@@ -87,9 +89,9 @@ public class TunableDouble implements DoubleSupplier {
      */
     public boolean hasChanged(int id) {
         if (!IN_TUNING_MODE) return false;
-        double currentValue = get();
-        Double lastValue = lastHasChangedValues.get(id);
-        if (lastValue == null || currentValue != lastValue) {
+        String currentValue = get();
+        String lastValue = lastHasChangedValues.get(id);
+        if (lastValue == null || !currentValue.equals(lastValue)) {
             lastHasChangedValues.put(id, currentValue);
             return true;
         }
@@ -98,28 +100,30 @@ public class TunableDouble implements DoubleSupplier {
     }
 
     /**
-     * Runs action if any of the TuneableDoubles have changed
+     * Runs action if any of the TunableStrings have changed
      *
-     * @param id Unique identifier for the caller to avoid conflicts when shared between multiple *
+     * @param id Unique identifier for the caller to avoid conflicts when shared between multiple
      *     objects. Recommended approach is to pass the result of "hashCode()"
      * @param action Callback to run when any of the tunable numbers have changed. Access tunable
      *     numbers in order inputted in method
      * @param tunableNumbers All tunable numbers to check
      */
     public static void ifChanged(
-            int id, Consumer<double[]> action, TunableDouble... tunableNumbers) {
-        if (Arrays.stream(tunableNumbers).anyMatch(tunableNumber -> tunableNumber.hasChanged(id))) {
-            action.accept(Arrays.stream(tunableNumbers).mapToDouble(TunableDouble::get).toArray());
+            int id, Consumer<String[]> action, TunableString... tunableStrings) {
+        if (Arrays.stream(tunableStrings).anyMatch(tunableString -> tunableString.hasChanged(id))) {
+            action.accept(
+                    Arrays.stream(tunableStrings).map(TunableString::get).toArray(String[]::new));
         }
     }
 
-    /** Runs action if any of the tunableNumbers have changed */
-    public static void ifChanged(int id, Runnable action, TunableDouble... tunableNumbers) {
-        ifChanged(id, values -> action.run(), tunableNumbers);
-    }
-
-    @Override
-    public double getAsDouble() {
-        return get();
+    /**
+     * Executes the specified action if any of the provided tunable Strings have changed.
+     *
+     * @param id The identifier for the action.
+     * @param action The action to be executed if any of the tunable numbers have changed.
+     * @param tunableStrings The tunable Strings to be checked for changes.
+     */
+    public static void ifChanged(int id, Runnable action, TunableString... tunableStrings) {
+        ifChanged(id, values -> action.run(), tunableStrings);
     }
 }

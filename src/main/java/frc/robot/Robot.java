@@ -10,8 +10,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
+import frc.lib.lib2706.networktables.TunableString;
 import frc.lib.lib6328.VirtualSubsystem;
 import frc.robot.Config.CANID;
+import frc.robot.Config.NTConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.robotcontainers.ApolloContainer;
 import frc.robot.robotcontainers.BeetleContainer;
@@ -33,6 +35,8 @@ public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
     private RobotContainer m_robotContainer;
 
+    private TunableString tunableLogName = new TunableString("LogName", NTConfig.logTable, "");
+
     /**
      * This function is run when the robot is first started up and should be used for any
      * initialization code.
@@ -42,8 +46,8 @@ public class Robot extends TimedRobot {
         // Record both DS control and joystick data
         DriverStation.startDataLog(DataLogManager.getLog());
 
-        // Start the URCL (Unofficial REV-Compatible Logger) by 6328. Logs all messages from REV
-        // devices.
+        // Start the URCL (Unofficial REV-Compatible Logger) by FRC Team 6328, Mechanical Advantage.
+        // Logs all CAN messages sent from REV devices.
         URCL.start(CANID.mapCanIdsToNames());
 
         // Disable PhotonVision version check in simulation
@@ -104,6 +108,16 @@ public class Robot extends TimedRobot {
         // block in order for anything in the Command-based framework to work.
         VirtualSubsystem.periodicAll();
         CommandScheduler.getInstance().run();
+
+        // Update the log name if the TunableString has changed
+        TunableString.ifChanged(
+                hashCode(),
+                () -> {
+                    System.out.println("LOG NAME HAS CHANGED TO: " + tunableLogName.get());
+                    DataLogManager.stop();
+                    DataLogManager.start(DataLogManager.getLogDir(), tunableLogName.get());
+                },
+                tunableLogName);
     }
 
     /** This function is called once each time the robot enters Disabled mode. */

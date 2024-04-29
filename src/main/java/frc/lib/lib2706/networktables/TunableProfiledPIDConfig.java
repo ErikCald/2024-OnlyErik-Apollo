@@ -40,11 +40,7 @@ public class TunableProfiledPIDConfig {
         m_accelConstraint = new TunableDouble("AccelConstraint", table, accelConstraint);
 
         NetworkTable ffTable = table.getSubTable("TuneProfiledPID");
-        m_tunablePIDConfig =
-                new TunablePIDConfig(
-                        this::pidConfigHasUpdates,
-                        ffTable,
-                        pidConfig);
+        m_tunablePIDConfig = new TunablePIDConfig(this::pidConfigHasUpdates, ffTable, pidConfig);
 
         // Set the initial values to the defaults or to previously set values on networktables
         updateValues();

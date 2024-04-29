@@ -1,7 +1,5 @@
 package frc.robot.subsystems.swerve;
 
-import java.util.Optional;
-
 import com.ctre.phoenix.sensors.WPI_PigeonIMU;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
@@ -30,6 +28,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import frc.lib.lib254.SwerveSetpoint;
 import frc.lib.lib254.SwerveSetpointGenerator;
 import frc.lib.lib2706.GeomUtil;
@@ -45,6 +44,8 @@ import frc.robot.Config.NTConfig;
 import frc.robot.Config.RobotID;
 import frc.robot.Config.SwerveConfig;
 import frc.robot.Config.SwerveConfig.ModuleLimits;
+
+import java.util.Optional;
 
 /**
  * The SwerveSubsystem class represents the subsystem responsible for controlling the swerve drive of the robot.

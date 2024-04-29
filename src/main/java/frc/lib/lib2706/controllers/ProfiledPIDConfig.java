@@ -44,16 +44,20 @@ public class ProfiledPIDConfig {
 
     /**
      * Creates a new instance of ProfiledPIDController with the specified PID constants and constraints.
-     * 
+     *
      * @return a new instance of ProfiledPIDController
      */
     public ProfiledPIDController createController() {
-        return new ProfiledPIDController(kPIDConfig.kP, kPIDConfig.kI, kPIDConfig.kD, new Constraints(kVelConstraint, kAccelConstraint));
+        return new ProfiledPIDController(
+                kPIDConfig.kP,
+                kPIDConfig.kI,
+                kPIDConfig.kD,
+                new Constraints(kVelConstraint, kAccelConstraint));
     }
 
     /**
      * Creates a new instance of ProfiledExternalPIDController.
-     * 
+     *
      * @return a new instance of ProfiledExternalPIDController
      */
     public ProfiledExternalPIDController createExternalController() {

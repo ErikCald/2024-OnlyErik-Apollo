@@ -578,6 +578,7 @@ public final class Config {
 
     public static final class NTConfig {
         public static NetworkTable
+                logTable = NetworkTableInstance.getDefault().getTable("OtherLogData"),
                 shooterTable = NetworkTableInstance.getDefault().getTable("Shooter"),
                 armTable = NetworkTableInstance.getDefault().getTable("Arm"),
                 swerveTable = NetworkTableInstance.getDefault().getTable("Swerve"),
