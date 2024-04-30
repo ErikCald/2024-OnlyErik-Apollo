@@ -38,6 +38,12 @@ import frc.robot.Config.CANID;
 import frc.robot.Config.NTConfig;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
+/**
+ * The ArmSubsystem class represents the subsystem responsible for controlling the arm of the robot.
+ * It handles the configuration and control of the SparkMax motor, absolute encoder, and PID controllers.
+ * The class provides methods for setting the arm angle, calculating the PID slot, resetting the profiled PID controller,
+ * and retrieving the current arm position in radians.
+ */
 public class ArmSubsystem extends SubsystemBase {
     private static ArmSubsystem instance = null;
 
@@ -58,6 +64,10 @@ public class ArmSubsystem extends SubsystemBase {
     private final IntegerPublisher pubActivePIDSlot;
     private final DoubleArrayPublisher pubArmPose = NTUtil.doubleArrayPubFast(dataTable, "ArmPose");
 
+    /**
+     * The ArmSubsystem class represents the subsystem responsible for controlling the arm of the robot.
+     * It follows the Singleton design pattern to ensure that only one instance of the subsystem is created.
+     */
     public static ArmSubsystem getInstance() {
         if (instance == null) {
             SubsystemChecker.subsystemConstructed(SubsystemType.ArmSubsystem);
@@ -66,6 +76,11 @@ public class ArmSubsystem extends SubsystemBase {
         return instance;
     }
 
+    /**
+     * The ArmSubsystem class represents the subsystem responsible for controlling the arm mechanism of the robot.
+     * It initializes and configures the SparkMax motor controller, absolute encoder, PID controllers, and network table publishers.
+     * The class also provides methods for setting PID values, updating setpoints, and publishing sensor data.
+     */
     private ArmSubsystem() {
         /* Setup SparkMax */
         m_sparkmax = new CANSparkMax(CANID.ARM.val(), MotorType.kBrushless);
@@ -212,6 +227,11 @@ public class ArmSubsystem extends SubsystemBase {
         return m_absEncoder.setZeroOffset(offsetRad);
     }
 
+    /**
+     * This method is called periodically to update the arm subsystem.
+     * It publishes measurements to network tables, updates tunable PID values,
+     * and performs other necessary operations.
+     */
     @Override
     public void periodic() {
         // Publish measurements to network tables

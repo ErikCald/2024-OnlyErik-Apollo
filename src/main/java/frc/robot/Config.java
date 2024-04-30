@@ -421,11 +421,16 @@ public final class Config {
         public static int CANDLE = CANID.CANDLE.val();
     }
 
-    public static final class Intake {
-        public static final int INTAKE = CANID.INTAKE.val();
-        public static final byte frontSensor = 0; // its the same but lighter, so dtw
-        public static final byte centerSensor = 2; // its the same but lighter, so dtw
-        public static final byte backSensor = 1; // its the same but lighter, so dtw
+    public static final class IntakeConfig {
+        public static final int centerSwitchChannel = 2;
+        public static final int shooterSideSwitchChannel = 1;
+        public static final double shortDebouncePeriod = 0.1;
+        public static final double longDebouncePeriod = 0.3;
+
+        public static final boolean invertMotor = true;
+        public static final int currentLimit = 60;
+        public static final IdleMode idleMode = IdleMode.kBrake;
+        public static final double voltageCompensation = 12.0;
     }
 
     public class ArmConfig {

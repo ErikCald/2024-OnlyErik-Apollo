@@ -4,234 +4,144 @@
 
 package frc.robot.subsystems.mechanisms;
 
-import static frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes.*;
-import static frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeStates.*;
+import static frc.lib.lib2706.ErrorCheck.configureSpark;
 
-import com.revrobotics.CANSparkBase.IdleMode;
 import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.PubSubOption;
-import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.robot.Config;
+import frc.lib.lib2706.networktables.NTUtil;
+import frc.robot.Config.CANID;
+import frc.robot.Config.IntakeConfig;
 import frc.robot.Config.NTConfig;
-import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes;
-import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeStates;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
-/** Add your docs here. */
+/**
+ * The IntakeSubsystem class represents the intake mechanism of the robot.
+ * It provides methods for controlling the intake subsystem.
+ */
 public class IntakeSubsystem extends SubsystemBase {
-    private CANSparkMax m_intake;
-    private boolean stateFulControl = true;
-    private IntakeStateMachine intakeStates = new IntakeStateMachine();
-
-    private DigitalInput frontSensor; //  -> 0
-    private DigitalInput centerSensor; // -> 1
-    private DigitalInput backSensor; //   -> 2
-
-    private Debouncer frontSensorDebouncer;
-    private Debouncer centerSensorDebouncer;
-    private Debouncer backSensorDebouncer;
-    private Debouncer backSensorLongDebouncer;
-
-    private BooleanPublisher frontSensorPub;
-    private BooleanPublisher centerSensorPub;
-    private BooleanPublisher backSensorPub;
-    private BooleanPublisher backSensorLongPub;
-    private StringPublisher statesPub;
-
-    private boolean frontSensorResult;
-    private boolean centerSensorResult;
-    private boolean backSensorResult;
-    private boolean backSensorLongResult;
-
     private static IntakeSubsystem instance;
 
+    private CANSparkMax m_sparkmax;
+
+    private final DigitalInput centerSwitch, shooterSideSwitch;
+    private final Debouncer centerDebouncer, shooterSideDebouncer, shooterSideLongDebouncer;
+    private final BooleanPublisher pubCenterSwitch, pubShooterSideSwitch, pubShooterSideLongSwitch;
+    private boolean isCenterSwitchActive, isShooterSideSwitchActive, isShooterSideLongSwitchActive;
+
+    /**
+     * The IntakeSubsystem class represents the intake mechanism of the robot.
+     * It provides methods for controlling the intake subsystem.
+     */
     public static IntakeSubsystem getInstance() {
         if (instance == null) instance = new IntakeSubsystem();
         return instance;
     }
 
+    /**
+     * The IntakeSubsystem class represents the subsystem responsible for controlling the intake 
+     * mechanism of the robot. It initializes and configures the SparkMax motor controller, digital 
+     * proximity switches, and NetworkTables for monitoring the intake status.
+     */
     private IntakeSubsystem() {
-        System.out.println("[Init]Creating Intake");
-        m_intake = new CANSparkMax(Config.Intake.INTAKE, MotorType.kBrushless);
-        m_intake.restoreFactoryDefaults();
-        m_intake.setInverted(true);
-        m_intake.setSmartCurrentLimit(70);
-        m_intake.setIdleMode(IdleMode.kBrake);
-        m_intake.enableVoltageCompensation(10);
+        /* Setup sparkmax */
+        m_sparkmax = new CANSparkMax(CANID.INTAKE.val(), MotorType.kBrushless);
+        configureSpark("intake factory defaults", () -> m_sparkmax.restoreFactoryDefaults());
+        configureSpark(
+                "intake set can timeout", () -> m_sparkmax.setCANTimeout(CANID.CANTIMEOUT_MS));
+        m_sparkmax.setInverted(IntakeConfig.invertMotor);
+        configureSpark(
+                "intake current limit",
+                () -> m_sparkmax.setSmartCurrentLimit(IntakeConfig.currentLimit));
+        configureSpark("intake idle mode", () -> m_sparkmax.setIdleMode(IntakeConfig.idleMode));
+        configureSpark(
+                "intake volt comp",
+                () -> m_sparkmax.enableVoltageCompensation(IntakeConfig.voltageCompensation));
 
-        frontSensor = new DigitalInput(Config.Intake.frontSensor);
-        centerSensor = new DigitalInput(Config.Intake.centerSensor);
-        backSensor = new DigitalInput(Config.Intake.backSensor);
+        /* Setup digital proximity switches */
+        centerSwitch = new DigitalInput(IntakeConfig.centerSwitchChannel);
+        shooterSideSwitch = new DigitalInput(IntakeConfig.shooterSideSwitchChannel);
 
-        frontSensorDebouncer = new Debouncer(0.1, Debouncer.DebounceType.kBoth);
-        centerSensorDebouncer = new Debouncer(0.1, Debouncer.DebounceType.kBoth);
-        backSensorDebouncer = new Debouncer(0.1, Debouncer.DebounceType.kBoth);
-        backSensorLongDebouncer = new Debouncer(0.3, Debouncer.DebounceType.kBoth);
+        Debouncer.DebounceType type = Debouncer.DebounceType.kBoth;
+        centerDebouncer = new Debouncer(IntakeConfig.shortDebouncePeriod, type);
+        shooterSideDebouncer = new Debouncer(IntakeConfig.shortDebouncePeriod, type);
+        shooterSideLongDebouncer = new Debouncer(IntakeConfig.longDebouncePeriod, type);
 
-        NetworkTable intakeTable = NetworkTableInstance.getDefault().getTable("Intake");
-        statesPub =
-                intakeTable
-                        .getStringTopic("Intake's Current State")
-                        .publish(PubSubOption.periodic(0.02));
-        frontSensorPub =
-                intakeTable
-                        .getBooleanTopic("front sensor result")
-                        .publish(PubSubOption.periodic(0.02));
-        centerSensorPub =
-                intakeTable
-                        .getBooleanTopic("center sensor result")
-                        .publish(PubSubOption.periodic(0.02));
-        backSensorPub =
-                intakeTable
-                        .getBooleanTopic("back sensor result")
-                        .publish(PubSubOption.periodic(0.02));
-        backSensorLongPub =
-                intakeTable
-                        .getBooleanTopic("back sensor result")
-                        .publish(PubSubOption.periodic(0.02));
+        /* Setup NetworkTables */
+        NetworkTable table = NTConfig.intakeTable;
+        pubCenterSwitch = table.getBooleanTopic("CenterSwitch").publish(NTUtil.fastPeriodic());
+        pubShooterSideSwitch =
+                table.getBooleanTopic("ShooterSideSwitch").publish(NTUtil.fastPeriodic());
+        pubShooterSideLongSwitch =
+                table.getBooleanTopic("ShooterSideSwitchLong").publish(NTUtil.fastPeriodic());
 
+        configureSpark("intake remove can timeout", () -> m_sparkmax.setCANTimeout(0));
         SparkMaxManagerSubsystem.getInstance()
-                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_intake);
+                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_sparkmax);
     }
 
-    public boolean isFrontSensorActive() {
-        return frontSensorResult;
+    /**
+     * Returns the status of the center switch.
+     * 
+     * @return true if the center switch is active, false otherwise.
+     */
+    public boolean centerSwitch() {
+        return isCenterSwitchActive;
     }
 
-    public boolean isCenterSensorActive() {
-        return centerSensorResult;
+    /**
+     * Returns the status of the shooter side switch.
+     * 
+     * @return true if the shooter side switch is active, false otherwise
+     */
+    public boolean shooterSideSwitch() {
+        return isShooterSideSwitchActive;
     }
 
-    public boolean isBackSensorActive() {
-        return backSensorResult;
+    /**
+     * Returns the status of the shooter side long switch.
+     * 
+     * @return true if the shooter side long switch is active, false otherwise
+     */
+    public boolean shooterSideSwitchLong() {
+        return isShooterSideLongSwitchActive;
     }
 
-    public boolean isBackSensorLongActive() {
-        return backSensorLongResult;
-    }
-
+    /**
+     * Sets the voltage of the intake mechanism.
+     * 
+     * @param voltage the voltage to set
+     */
     public void setVoltage(double voltage) {
-        m_intake.setVoltage(voltage);
+        m_sparkmax.setVoltage(voltage);
     }
 
-    public void setMode(IntakeModes mode) {
-        if (!stateFulControl) {
-            intakeStates.setMode(mode);
-            return;
-        }
-
-        if (mode.equals(INTAKE) && getCurrentState().equals(NOTE_IN_POS_IDLE)) {
-            intakeStates.setMode(STOP_INTAKE);
-        } else if (mode.equals(SHOOT) && getCurrentState().equals(INTAKING)) {
-            intakeStates.setMode(STOP_INTAKE);
-        } else {
-            intakeStates.setMode(mode);
-        }
-    }
-
-    public void allowAutoMovement() {
-        setVoltage(intakeStates.getDesiredVoltage());
-    }
-
-    public IntakeStates getCurrentState() {
-        return intakeStates.getCurrentState();
-    }
-
+    /**
+     * Stops the intake mechanism.
+     */
     public void stop() {
-        m_intake.stopMotor();
-    }
-
-    public boolean isNoteIn() {
-        return getCurrentState().equals(NOTE_IN_POS_IDLE);
-    }
-
-    public void setStateMachineOff() {
-        stateFulControl = false;
-    }
-
-    public void setStateMachineOn() {
-        stateFulControl = true;
-    }
-
-    /*---------------------------Commands---------------------------*/
-
-    /**
-     * This allows the Intake's state machine to have effect on the beheavior of the intake
-     * This should be called every run loop cycle, set it as the default command
-     * @return Default Intake Command
-     */
-    public Command defaultIntakeCommand() {
-        return Commands.sequence(
-                runOnce(() -> setMode(STOP_INTAKE)), run(() -> allowAutoMovement()));
+        m_sparkmax.stopMotor();
     }
 
     /**
-     * Sets the mode of the Intake's state machine to "SHOOT" mode when scheduled,
-     * it ends when non of the sensors detect a game piece(when the state is "SHOOTED")
-     * @return Shoot Note Command
+     * This method is called periodically to update the state of the intake subsystem.
+     * It calculates the status of various switches and publishes the results.
      */
-    public Command shootNoteCommand() {
-        return Commands.deadline(
-                Commands.waitUntil(() -> getCurrentState().equals(SHOOTED)),
-                Commands.runOnce(() -> setMode(SHOOT)));
-    }
-
-    /**
-     * Sets the mode of the Intake's state machine to "INTAKE" mode when scheduled
-     * If is interrupted it sets the mode to "STOP_INTAKE"
-     *  <-This is for TeleOp Only->
-     * @return Intake Command
-     */
-    public Command intakeNoteCommand() {
-        return Commands.startEnd(() -> setMode(INTAKE), () -> setMode(STOP_INTAKE));
-    }
-
-    /**
-     * Sets the mode of the Intake's state machine to "RELEASE" mode when scheduled
-     * If is interrupted it sets the mode to "STOP_INTAKE"
-     * <-This is for TeleOp Only->
-     * @return Release Command
-     */
-    public Command releaseNoteCommand() {
-        return Commands.startEnd(() -> setMode(RELEASE), () -> setMode(STOP_INTAKE));
-    }
-
     @Override
     public void periodic() {
-        frontSensorResult = frontSensorDebouncer.calculate(!frontSensor.get());
-        centerSensorResult = centerSensorDebouncer.calculate(!centerSensor.get());
-        backSensorResult = backSensorDebouncer.calculate(!backSensor.get());
-        backSensorLongResult = backSensorLongDebouncer.calculate(!backSensor.get());
+        isCenterSwitchActive = centerDebouncer.calculate(!centerSwitch.get());
+        isShooterSideSwitchActive = shooterSideDebouncer.calculate(!shooterSideSwitch.get());
+        isShooterSideLongSwitchActive =
+                shooterSideLongDebouncer.calculate(!shooterSideSwitch.get());
 
-        if (stateFulControl) {
-            intakeStates.updateSensors(
-                    () -> {
-                        return backSensorResult;
-                    },
-                    () -> {
-                        return frontSensorResult;
-                    },
-                    () -> {
-                        return centerSensorResult;
-                    });
-            intakeStates.updateStates();
-        }
-
-        frontSensorPub.accept(frontSensorResult);
-        centerSensorPub.accept(centerSensorResult);
-        backSensorPub.accept(backSensorResult);
-        backSensorLongPub.accept(backSensorLongResult);
-        statesPub.accept(stateFulControl ? getCurrentState().toString() : "No State Machine");
+        pubCenterSwitch.accept(isCenterSwitchActive);
+        pubShooterSideSwitch.accept(isShooterSideSwitchActive);
+        pubShooterSideLongSwitch.accept(isShooterSideLongSwitchActive);
     }
 }
