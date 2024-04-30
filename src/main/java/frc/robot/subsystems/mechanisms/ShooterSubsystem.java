@@ -1,9 +1,7 @@
 package frc.robot.subsystems.mechanisms;
 
-import static frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes.SHOOT_SPEAKER;
-import static frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes.STOP_SHOOTER;
-import static frc.robot.subsystems.mechanisms.ShooterStateMachine.States.AMP_LAUNCH_READY;
-import static frc.robot.subsystems.mechanisms.ShooterStateMachine.States.SPEAKER_LAUNCH_READY;
+import static frc.lib.lib2706.ErrorCheck.configureSpark;
+import static frc.lib.lib2706.ErrorCheck.errSpark;
 
 import com.revrobotics.CANSparkBase.ControlType;
 import com.revrobotics.CANSparkBase.IdleMode;
@@ -12,234 +10,213 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 
-import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.PubSubOption;
-import edu.wpi.first.networktables.StringPublisher;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import frc.lib.lib2706.ErrorCheck;
+import frc.lib.lib2706.controllers.PIDConfig;
+import frc.lib.lib2706.networktables.NTUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
-import frc.robot.Config;
+import frc.lib.lib2706.networktables.TunablePIDConfig;
+import frc.robot.Config.CANID;
 import frc.robot.Config.NTConfig;
-import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
-import frc.robot.subsystems.mechanisms.ShooterStateMachine.States;
+import frc.robot.Config.ShooterConfig;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
-import java.util.function.BooleanSupplier;
-
+/**
+ * The ShooterSubsystem class represents the subsystem responsible for controlling
+ * the shooter mechanism of the robot. It initializes and configures the SparkMax
+ * motor controllers, encoders, PID controllers, and network tables for monitoring
+ * and control.
+ */
 public class ShooterSubsystem extends SubsystemBase {
-    private CANSparkMax m_motor;
-    private SparkPIDController m_pidController;
-    private RelativeEncoder m_encoder;
-    private boolean closedLoopControl = false;
-    private boolean stateFulControl = false;
+    private static ShooterSubsystem INSTANCE;
 
-    private TunableDouble kP =
-            new TunableDouble("PID0/kP", NTConfig.shooterTable, Config.ShooterConstants.kP);
-    private TunableDouble kI =
-            new TunableDouble("PID0/kI", NTConfig.shooterTable, Config.ShooterConstants.kI);
-    private TunableDouble kD =
-            new TunableDouble("PID0/kD", NTConfig.shooterTable, Config.ShooterConstants.kD);
-    private TunableDouble kFF =
-            new TunableDouble("PID0/kFF", NTConfig.shooterTable, Config.ShooterConstants.kFF);
+    private CANSparkMax m_topSpark, m_botSpark;
+    private SparkPIDController m_topSparkPID, m_botSparkPID;
+    private RelativeEncoder m_topEncoder, m_botEncoder;
+    private DoublePublisher pubTopVel, pubBotVel;
+    private TunableDouble tunableSubwooferVel, tunableFarShotVel;
+    private TunablePIDConfig tunablePID0, tunablePID1, tunablePID3Slowdown;
 
-    private TunableDouble kP1 =
-            new TunableDouble("PID1/kP", NTConfig.shooterTable, Config.ShooterConstants.kP1);
-    private TunableDouble kI1 =
-            new TunableDouble("PID1/kI", NTConfig.shooterTable, Config.ShooterConstants.kI1);
-    private TunableDouble kD1 =
-            new TunableDouble("PID1/kD", NTConfig.shooterTable, Config.ShooterConstants.kD1);
-    private TunableDouble kFF1 =
-            new TunableDouble("PID1/kFF", NTConfig.shooterTable, Config.ShooterConstants.kFF1);
-    private TunableDouble shooterTreshHold =
-            new TunableDouble("tresh hold", NTConfig.shooterTable, 100);
-
-    private DoublePublisher velocityPub;
-    private StringPublisher statePub;
-    private BooleanPublisher shooterReadyPub;
-    private ShooterStateMachine shooterStates = new ShooterStateMachine();
-
-    private static ShooterSubsystem shooter;
-
+    /**
+     * The ShooterSubsystem class represents the shooter mechanism of the robot.
+     * It provides methods for controlling and managing the shooter.
+     */
     public static ShooterSubsystem getInstance() {
-        if (shooter == null) shooter = new ShooterSubsystem();
-        return shooter;
+        if (INSTANCE == null) INSTANCE = new ShooterSubsystem();
+        return INSTANCE;
     }
 
+    /**
+     * The ShooterSubsystem class represents the subsystem responsible for controlling
+     * the shooter mechanism of the robot. It initializes and configures the SparkMax
+     * motor controllers, encoders, PID controllers, and network tables for monitoring
+     * and control.
+     */
     public ShooterSubsystem() {
-        System.out.println("[Init] Creating Shooter");
-        m_motor = new CANSparkMax(Config.ShooterConstants.MOTOR_ID, MotorType.kBrushless);
-        m_motor.restoreFactoryDefaults();
+        /* Setup Sparkmaxs and encoders */
+        m_topSpark = new CANSparkMax(CANID.SHOOTER_TOP.val(), MotorType.kBrushless);
+        m_botSpark = new CANSparkMax(CANID.SHOOTER_BOT.val(), MotorType.kBrushless);
 
-        m_motor.setCANTimeout(500); // Units in miliseconds
-        m_motor.setIdleMode(IdleMode.kBrake);
-        m_motor.setInverted(false);
+        m_topEncoder = setupSparkmax("shooter top", m_topSpark);
+        m_botEncoder = setupSparkmax("shooter bot", m_botSpark);
 
-        m_pidController = m_motor.getPIDController();
-        m_encoder = m_motor.getEncoder();
+        /* Setup Spark PID Controllers */
+        m_topSparkPID = m_topSpark.getPIDController();
+        m_botSparkPID = m_botSpark.getPIDController();
+        updatePIDValues(ShooterConfig.pid0Config, false);
+        updatePIDValues(ShooterConfig.pid1Config, false);
+        updatePIDValues(ShooterConfig.pid3SlowdownConfig, false);
 
-        // Voltage compensation
-        m_motor.enableVoltageCompensation(10); // adjust on final robot
-        m_motor.setSmartCurrentLimit(70);
-        setBrake(true);
+        /* Setup NetworkTables */
+        pubTopVel = NTUtil.doublePubFast(NTConfig.shooterTable, "Top Vel (RPM)");
+        pubBotVel = NTUtil.doublePubFast(NTConfig.shooterTable, "Bot Vel (RPM)");
 
-        m_pidController.setOutputRange(
-                Config.ShooterConstants.kMinOutput, Config.ShooterConstants.kMaxOutput);
-        setPIDGains(kP.get(), kI.get(), kD.get(), 0);
-        setFFGains(kFF.get(), 0);
+        /* Setup Tunable values */
+        tunableSubwooferVel =
+                new TunableDouble(
+                        "Subwoofer Vel (RPM)", NTConfig.shooterTable, ShooterConfig.subwooferRPM);
+        tunableFarShotVel =
+                new TunableDouble(
+                        "Far Shot Vel (RPM)", NTConfig.shooterTable, ShooterConfig.farShotRPM);
 
-        setPIDGains(kP1.get(), kI1.get(), kD1.get(), 1);
-        setFFGains(kFF1.get(), 1);
+        tunablePID0 =
+                new TunablePIDConfig(
+                        (config) -> updatePIDValues(config, true),
+                        NTConfig.shooterTable.getSubTable("PID0"),
+                        ShooterConfig.pid0Config);
+        tunablePID1 =
+                new TunablePIDConfig(
+                        (config) -> updatePIDValues(config, true),
+                        NTConfig.shooterTable.getSubTable("PID1"),
+                        ShooterConfig.pid1Config);
+        tunablePID3Slowdown =
+                new TunablePIDConfig(
+                        (config) -> updatePIDValues(config, true),
+                        NTConfig.shooterTable.getSubTable("PID3Slowdown"),
+                        ShooterConfig.pid3SlowdownConfig);
 
-        ErrorCheck.sparkBurnFlash("Shooter", m_motor);
-
-        velocityPub =
-                NTConfig.shooterTable
-                        .getDoubleTopic("Shooter Velocity RPM")
-                        .publish(PubSubOption.periodic(0.02));
-        shooterReadyPub =
-                NTConfig.shooterTable
-                        .getBooleanTopic("Shooter is Ready to shoot")
-                        .publish(PubSubOption.periodic(0.02));
-        statePub =
-                NTConfig.shooterTable
-                        .getStringTopic("Shooter state")
-                        .publish(PubSubOption.periodic(0.02));
-
+        /* Finalize Sparkmaxs */
+        configureSpark("shooter bot remove can timeout", () -> m_botSpark.setCANTimeout(0));
+        configureSpark("shooter top remove can timeout", () -> m_topSpark.setCANTimeout(0));
         SparkMaxManagerSubsystem.getInstance()
-                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_motor);
-    }
-
-    public double getVelocityRPM() {
-        return m_encoder.getVelocity();
-    }
-
-    public void setRPM(double setPoint) {
-        int slotID = 1;
-        m_pidController.setReference(setPoint, ControlType.kVelocity, slotID);
-    }
-
-    public void setVoltage(double setVolt) {
-        m_motor.setVoltage(setVolt);
-    }
-
-    public void stop() {
-        m_motor.stopMotor();
-    }
-
-    public void setMode(ShooterModes desiredMode) {
-        shooterStates.setMode(desiredMode);
-    }
-
-    public void allowAutoMovement(boolean isThereNote) {
-        if (!isThereNote && stateFulControl)
-            setMode(STOP_SHOOTER); // it should set to stop now when there is no note in intake
-
-        if (closedLoopControl) {
-            setRPM(shooterStates.getDesiredVelocityRPM());
-        } else {
-            setVoltage(shooterStates.getDesiredVoltage());
-        }
-    }
-
-    public void setBrake(boolean enableBreak) {
-        m_motor.setIdleMode(enableBreak ? IdleMode.kBrake : IdleMode.kCoast);
-    }
-
-    public States getCurrentState() {
-        return shooterStates.getCurrentState();
-    }
-
-    private void setPIDGains(double kP, double kI, double kD, int slotID) {
-        m_pidController.setP(kP, slotID);
-        m_pidController.setI(kI, slotID);
-        m_pidController.setD(kD, slotID);
-    }
-
-    private void setFFGains(double kFF, int slotID) {
-        m_pidController.setFF(kFF, slotID);
-    }
-
-    public boolean isReadyToShoot() {
-        return getCurrentState().equals(SPEAKER_LAUNCH_READY)
-                || getCurrentState().equals(AMP_LAUNCH_READY);
-    }
-
-    public void setStateMachineOff() {
-        stateFulControl = false;
-    }
-
-    public void setStateMachineOn() {
-        stateFulControl = true;
-    }
-
-    /*---------------------------Commands---------------------------*/
-
-    /**
-     * This allows the Shooter's state machine to have effect on the beheavior of the shooter
-     * This should be called every run loop cycle, set it as the default command
-     * @return Default Intake Command
-     */
-    public Command defaultShooterCommand(BooleanSupplier isThereNote) {
-        return Commands.sequence(
-                runOnce(() -> setMode(STOP_SHOOTER)),
-                run(() -> allowAutoMovement(isThereNote.getAsBoolean())));
+                .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_botSpark, m_topSpark);
     }
 
     /**
-     * Sets the mode of the Shooter's state nachine to "SHOOT_SPEAKER"
-     * This will set the velocity to the
-     * @return
-     */
-    public Command speedUpForSpeakerCommand() {
-        return Commands.deadline(
-                Commands.waitUntil(() -> isReadyToShoot()),
-                Commands.runOnce(() -> setMode(SHOOT_SPEAKER)));
-    }
-
-    /**
-     * Command that will set the the given mode if shooter is stopped,
-     * or stop the shooter if it's currently doing an action.
+     * Setup a SparkMax motor controller with the given name and configuration.
      *
-     * @param mode Mode to toggle.
-     * @return Command to attach to a button as onTrue.
+     * @param name the name of the motor controller
+     * @param sparkmax the SparkMax motor controller to configure
+     * @return the encoder of the SparkMax motor controller
      */
-    public Command toggleSpinUpCommand(ShooterModes mode) {
-        return Commands.runOnce(
-                () -> {
-                    if (shooterStates.getDesiredMode() != ShooterModes.STOP_SHOOTER) {
-                        shooterStates.setMode(ShooterModes.STOP_SHOOTER);
-                    } else {
-                        shooterStates.setMode(mode);
-                    }
-                });
+    private RelativeEncoder setupSparkmax(String name, CANSparkMax sparkmax) {
+        configureSpark(
+                name + " set can timeout", () -> sparkmax.setCANTimeout(CANID.CANTIMEOUT_MS));
+        configureSpark(name + " factory defaults", () -> sparkmax.restoreFactoryDefaults());
+        configureSpark(
+                name + " set can timeout", () -> sparkmax.setCANTimeout(CANID.CANTIMEOUT_MS));
+        configureSpark(name + " set idle mode", () -> sparkmax.setIdleMode(ShooterConfig.idleMode));
+        configureSpark(
+                name + " set volt comp",
+                () -> sparkmax.enableVoltageCompensation(ShooterConfig.voltComp));
+        configureSpark(
+                name + " set curr limit",
+                () -> sparkmax.setSmartCurrentLimit(ShooterConfig.currentLimit));
+
+        RelativeEncoder encoder = sparkmax.getEncoder();
+        configureSpark(
+                name + " set pos conv factor",
+                () -> encoder.setVelocityConversionFactor(ShooterConfig.velConvFactor));
+        return encoder;
+    }
+
+    /**
+     * Updates the PID values for the Shooter motors.
+     *
+     * @param config the PID configuration containing the new values
+     */
+    private void updatePIDValues(PIDConfig config, boolean isRuntime) {
+        int slot = config.pidSlot;
+        if (!isRuntime) {
+            configureSpark("shooter bot f" + slot, () -> m_botSparkPID.setP(config.kF, slot));
+            configureSpark("shooter bot p" + slot, () -> m_botSparkPID.setP(config.kP, slot));
+            configureSpark("shooter bot i" + slot, () -> m_botSparkPID.setI(config.kI, slot));
+            configureSpark("shooter bot d" + slot, () -> m_botSparkPID.setD(config.kD, slot));
+            configureSpark(
+                    "shooter bot iZone" + slot, () -> m_botSparkPID.setIZone(config.iZone, slot));
+
+            configureSpark("shooter top f" + slot, () -> m_topSparkPID.setP(config.kF, slot));
+            configureSpark("shooter top p" + slot, () -> m_topSparkPID.setP(config.kP, slot));
+            configureSpark("shooter top i" + slot, () -> m_topSparkPID.setI(config.kI, slot));
+            configureSpark("shooter top d" + slot, () -> m_topSparkPID.setD(config.kD, slot));
+            configureSpark(
+                    "shooter top iZone" + slot, () -> m_topSparkPID.setIZone(config.iZone, slot));
+        } else {
+            errSpark("shooter bot f" + slot, m_botSparkPID.setP(config.kF, slot));
+            errSpark("shooter bot p" + slot, m_botSparkPID.setP(config.kP, slot));
+            errSpark("shooter bot i" + slot, m_botSparkPID.setI(config.kI, slot));
+            errSpark("shooter bot d" + slot, m_botSparkPID.setD(config.kD, slot));
+            errSpark("shooter bot iZone" + slot, m_botSparkPID.setIZone(config.iZone, slot));
+
+            errSpark("shooter top f" + slot, m_topSparkPID.setP(config.kF, slot));
+            errSpark("shooter top p" + slot, m_topSparkPID.setP(config.kP, slot));
+            errSpark("shooter top i" + slot, m_topSparkPID.setI(config.kI, slot));
+            errSpark("shooter top d" + slot, m_topSparkPID.setD(config.kD, slot));
+            errSpark("shooter top iZone" + slot, m_topSparkPID.setIZone(config.iZone, slot));
+        }
     }
 
     @Override
     public void periodic() {
-        TunableDouble.ifChanged(
-                hashCode(), () -> setPIDGains(kP.get(), kI.get(), kD.get(), 0), kP, kI, kD);
-        TunableDouble.ifChanged(hashCode(), () -> setFFGains(kFF.get(), 0), kFF);
+        pubBotVel.accept(getBotVelRPM());
+        pubTopVel.accept(getTopVelRPM());
 
-        TunableDouble.ifChanged(
-                hashCode(), () -> setPIDGains(kP1.get(), kI1.get(), kD1.get(), 1), kP1, kI1, kD1);
-        TunableDouble.ifChanged(hashCode(), () -> setFFGains(kFF1.get(), 1), kFF1);
+        /* Update tunables */
+        tunablePID0.updateValues();
+        tunablePID1.updateValues();
+        tunablePID3Slowdown.updateValues();
+    }
 
-        // Check if this method would work like this
-        if (stateFulControl == true) {
-            shooterStates.isInRange(
-                    () ->
-                            getVelocityRPM()
-                                    > shooterStates.getDesiredVelocityRPM()
-                                            - shooterTreshHold.get());
-            shooterStates.updateState();
-        }
+    /**
+     * Stops the motors of the shooter subsystem.
+     */
+    public void stopMotors() {
+        m_botSpark.stopMotor();
+        m_topSpark.stopMotor();
+    }
 
-        velocityPub.accept(getVelocityRPM());
-        shooterReadyPub.accept(isReadyToShoot());
-        statePub.accept(getCurrentState().toString());
+    /**
+     * Returns the velocity of the bot in RPM (Rotations Per Minute).
+     *
+     * @return The velocity of the bot in RPM.
+     */
+    public double getBotVelRPM() {
+        return m_botEncoder.getVelocity();
+    }
+
+    /**
+     * Returns the velocity of the top in RPM (Rotations Per Minute).
+     *
+     * @return The velocity of the top in RPM.
+     */
+    public double getTopVelRPM() {
+        return m_topEncoder.getVelocity();
+    }
+
+    public void setRPM(double vel) {
+        int slotID = 1;
+        m_topSparkPID.setReference(vel, ControlType.kVelocity, slotID);
+        m_botSparkPID.setReference(vel, ControlType.kVelocity, slotID);
+    }
+
+    public void setVoltage(double volts) {
+        m_topSpark.setVoltage(volts);
+        m_botSpark.setVoltage(volts);
+    }
+
+    public void setBrake(boolean enableBreak) {
+        m_topSpark.setIdleMode(enableBreak ? IdleMode.kBrake : IdleMode.kCoast);
+        m_botSpark.setIdleMode(enableBreak ? IdleMode.kBrake : IdleMode.kCoast);
     }
 }

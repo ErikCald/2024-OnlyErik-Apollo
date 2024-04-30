@@ -47,6 +47,8 @@ public class TunablePIDConfig {
 
         // Set the initial values to the defaults or to previously set values on networktables
         updateValues();
+
+        System.out.println("HashCode: " + hashCode());
     }
 
     /**

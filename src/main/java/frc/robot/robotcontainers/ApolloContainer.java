@@ -12,12 +12,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-
 import frc.lib.lib2706.button.FakeCommandXboxController;
 import frc.lib.lib2706.button.FakeCommandXboxController.FakeControllerType;
-import frc.lib.lib2706.button.XBoxControllerUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
-import frc.robot.Config;
 import frc.robot.Config.ArmConfig.ArmSetpoints;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig.TeleopSpeeds;
@@ -34,9 +31,7 @@ import frc.robot.commands.SubwooferShot;
 import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.auto.AutoRoutines;
 import frc.robot.commands.auto.AutoSelector;
-import frc.robot.subsystems.mechanisms.IntakeStateMachine.IntakeModes;
 import frc.robot.subsystems.mechanisms.IntakeSubsystem;
-import frc.robot.subsystems.mechanisms.ShooterStateMachine.ShooterModes;
 import frc.robot.subsystems.mechanisms.ShooterSubsystem;
 import frc.robot.subsystems.misc.CreateShuffleboardLayout;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
@@ -89,12 +84,6 @@ public class ApolloContainer extends RobotContainer {
         /*  Setup default commands */
         m_swerveDefaultCommand = new TeleopSwerve(driver);
         s_Swerve.setDefaultCommand(m_swerveDefaultCommand);
-        if (!Config.disableStateBasedProgramming) {
-            intake.setDefaultCommand(intake.defaultIntakeCommand());
-            shooter.setDefaultCommand(shooter.defaultShooterCommand(() -> intake.isNoteIn()));
-        } else {
-            // shooter.setDefaultCommand(new Shooter_PID_Tuner(() -> 0));
-        }
 
         configureButtonBindings();
 
@@ -116,11 +105,11 @@ public class ApolloContainer extends RobotContainer {
     private void configureButtonBindings() {
         // Set bling to purple when note is in
 
-        new Trigger(() -> intake.isBackSensorActive())
+        new Trigger(() -> intake.shooterSideSwitch())
                 .onTrue(CombinedCommands.strobeToSolidBlingCommand())
                 .onFalse(new BlingCommand(BlingColour.DISABLED));
 
-        new Trigger(() -> intake.isBackSensorLongActive() && DriverStation.isTeleopEnabled())
+        new Trigger(() -> intake.shooterSideSwitchLong() && DriverStation.isTeleopEnabled())
                 .onTrue(
                         Commands.parallel(
                                 new RumbleJoystick(
@@ -224,59 +213,31 @@ public class ApolloContainer extends RobotContainer {
                 .whileTrue(Commands.run(() -> intake.setVoltage(-12), intake))
                 .onFalse(Commands.runOnce(() -> intake.stop()));
 
-        // Simple shooter and intake
-        if (Config.disableStateBasedProgramming) {
-            intake.setStateMachineOff();
-            shooter.setStateMachineOff();
+        // operator.leftTrigger(0.3).whileTrue(
+        operator.leftBumper()
+                .whileTrue(CombinedCommands.armIntake())
+                .onFalse(new SetArm(() -> ArmSetpoints.NO_INTAKE.getDegrees()))
+                .onFalse(
+                        new MakeIntakeMotorSpin(9.0, 0)
+                                .withTimeout(1)
+                                .until(() -> intake.shooterSideSwitch()));
 
-            // Intake note with leftTrigger
+        // NOTE: right Trigger has been assigned to climber
+        operator.rightTrigger(0.3).whileTrue(CombinedCommands.simpleShootNoteAmp());
+        // Shoot note with leftBumper
+        // operator.rightBumper().whileTrue(CombinedCommands.simpleShootNoteSpeaker(1))
+        //                       .onTrue(new
+        // SetArm(()->ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees()));
 
-            // operator.leftTrigger(0.3).whileTrue(
-            operator.leftBumper()
-                    .whileTrue(CombinedCommands.armIntake())
-                    .onFalse(new SetArm(() -> ArmSetpoints.NO_INTAKE.getDegrees()))
-                    .onFalse(
-                            new MakeIntakeMotorSpin(9.0, 0)
-                                    .withTimeout(1)
-                                    .until(() -> intake.isBackSensorActive()));
+        operator.rightBumper()
+                .onTrue(
+                        new SubwooferShot(
+                                operator.rightBumper(),
+                                ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees(),
+                                2820,
+                                2700));
 
-            // NOTE: right Trigger has been assigned to climber
-            operator.rightTrigger(0.3).whileTrue(CombinedCommands.simpleShootNoteAmp());
-            // Shoot note with leftBumper
-            // operator.rightBumper().whileTrue(CombinedCommands.simpleShootNoteSpeaker(1))
-            //                       .onTrue(new
-            // SetArm(()->ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees()));
 
-            operator.rightBumper()
-                    .onTrue(
-                            new SubwooferShot(
-                                    operator.rightBumper(),
-                                    ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees(),
-                                    2820,
-                                    2700));
-
-            // State based shooter and intake
-        } else {
-            intake.setStateMachineOn();
-            shooter.setStateMachineOn();
-
-            // Intake note with leftTrigger
-            operator.leftTrigger(0.3) // Intake the Note
-                    .whileTrue(Commands.runOnce(() -> intake.setMode(IntakeModes.INTAKE)))
-                    .whileFalse(Commands.runOnce(() -> intake.setMode(IntakeModes.STOP_INTAKE)));
-
-            // Toggle to spin up or spin down the shooter with rightBumper
-            operator.rightBumper().onTrue(shooter.toggleSpinUpCommand(ShooterModes.SHOOT_SPEAKER));
-
-            // Shoot note with leftBumper
-            // operator.leftBumper().onTrue(CombinedCommands.statefulShootNote());
-
-            // Eject the note from the front with leftPOV
-            XBoxControllerUtil.leftPOV(operator)
-                    .debounce(0.1)
-                    .whileTrue(Commands.runOnce(() -> intake.setMode(IntakeModes.RELEASE)))
-                    .whileFalse(Commands.runOnce(() -> intake.setMode(IntakeModes.STOP_INTAKE)));
-        }
 
         /**
          * Testing button bindings

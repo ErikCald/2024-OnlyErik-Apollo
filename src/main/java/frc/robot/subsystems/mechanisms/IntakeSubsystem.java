@@ -45,8 +45,8 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * The IntakeSubsystem class represents the subsystem responsible for controlling the intake 
-     * mechanism of the robot. It initializes and configures the SparkMax motor controller, digital 
+     * The IntakeSubsystem class represents the subsystem responsible for controlling the intake
+     * mechanism of the robot. It initializes and configures the SparkMax motor controller, digital
      * proximity switches, and NetworkTables for monitoring the intake status.
      */
     private IntakeSubsystem() {
@@ -88,7 +88,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     /**
      * Returns the status of the center switch.
-     * 
+     *
      * @return true if the center switch is active, false otherwise.
      */
     public boolean centerSwitch() {
@@ -97,7 +97,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     /**
      * Returns the status of the shooter side switch.
-     * 
+     *
      * @return true if the shooter side switch is active, false otherwise
      */
     public boolean shooterSideSwitch() {
@@ -106,7 +106,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     /**
      * Returns the status of the shooter side long switch.
-     * 
+     *
      * @return true if the shooter side long switch is active, false otherwise
      */
     public boolean shooterSideSwitchLong() {
@@ -115,7 +115,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     /**
      * Sets the voltage of the intake mechanism.
-     * 
+     *
      * @param voltage the voltage to set
      */
     public void setVoltage(double voltage) {

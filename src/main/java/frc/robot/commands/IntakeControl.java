@@ -54,6 +54,6 @@ public class IntakeControl extends Command {
         if (direction)
             // return intakeSubsystem.isSensor7True() == false;
             return false;
-        else return intakeSubsystem.isBackSensorActive() == false;
+        else return intakeSubsystem.shooterSideSwitch() == false;
     }
 }

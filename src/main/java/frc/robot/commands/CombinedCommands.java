@@ -31,7 +31,7 @@ public class CombinedCommands {
      */
     public static Command simpleShootNoteSpeaker(double intakeTimeout) {
         return (simpleShootNoteSpeaker(
-                intakeTimeout, () -> Config.ShooterConstants.subwooferRPM, 100));
+                intakeTimeout, () -> Config.ShooterConfig.subwooferRPM, 100));
     }
 
     /**
@@ -45,7 +45,7 @@ public class CombinedCommands {
                         new IntakeControl(false).withTimeout(0.15),
                         new WaitUntilCommand(
                                 () ->
-                                        ShooterSubsystem.getInstance().getVelocityRPM()
+                                        ShooterSubsystem.getInstance().getTopVelRPM()
                                                 > RPM.getAsDouble()),
                         new IntakeControl(true).withTimeout(intakeTimeout)),
                 new Shooter_PID_Tuner(() -> (RPM.getAsDouble() + clearance)));

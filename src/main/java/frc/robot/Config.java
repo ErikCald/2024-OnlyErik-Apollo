@@ -162,7 +162,8 @@ public final class Config {
         // mechanism CAN IDs
         ARM(19),
         INTAKE(21),
-        SHOOTER(22);
+        SHOOTER_TOP(22),
+        SHOOTER_BOT(23);
 
         private final int id;
 
@@ -503,20 +504,25 @@ public final class Config {
         }
     }
 
-    public static final class ShooterConstants {
-        public static final byte MOTOR_ID = (byte) CANID.SHOOTER.val();
-        public static final double kP = 0.0002,
-                kI = 0.0,
-                kD = 0.0,
-                kFF = 0.0003,
-                kP1 = 0.00027,
-                kI1 = 0.0,
-                kD1 = 0.00015,
-                kFF1 = 0.00027,
-                kMaxOutput = 1.0,
-                kMinOutput = -1.0,
-                maxRPM = 5700.0,
-                subwooferRPM = 2750;
+    public static final class ShooterConfig {
+        public static final double subwooferRPM = 5500;
+        public static final double farShotRPM = 8000;
+
+        public static final PIDConfig pid0Config = new PIDConfig(0.0003, 0.0002, 0.0, 0.0, 0.0, 0);
+        public static final PIDConfig pid1Config =
+                new PIDConfig(0.00027, 0.00027, 0.0, 0.00015, 0.0, 1);
+        public static final PIDConfig pid3SlowdownConfig =
+                new PIDConfig(0.0, 0.0003, 0.0, 0.0, 0.0, 3);
+
+        public static final boolean topRollerMotorInvert = true;
+        public static final boolean bottomRollerMotorInvert = false;
+
+        public static final IdleMode idleMode = IdleMode.kCoast;
+        public static final double voltComp = 12.0;
+        public static final int currentLimit = 50;
+
+        public static final double gearRatio = 2.0; // Above 1.0 for a speed increase
+        public static final double velConvFactor = gearRatio; // RPM of Rollers
     }
 
     /**

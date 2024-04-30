@@ -74,7 +74,7 @@ public class SubwooferShot extends Command {
         }
 
         if (m_isButtonPressed.getAsBoolean()
-                && ShooterSubsystem.getInstance().getVelocityRPM() > m_shooterTriggerRPM) {
+                && ShooterSubsystem.getInstance().getTopVelRPM() > m_shooterTriggerRPM) {
             feedNoteCommand.schedule();
         }
     }
