@@ -19,7 +19,7 @@ import frc.robot.robotcontainers.ApolloContainer;
 import frc.robot.robotcontainers.BeetleContainer;
 import frc.robot.robotcontainers.PoseidonContainer;
 import frc.robot.robotcontainers.RobotContainer;
-import frc.robot.subsystems.arm.ArmSubsystem;
+import frc.robot.subsystems.mechanisms.ArmSubsystem;
 import frc.robot.subsystems.swerve.PathPlannerSubsystem;
 
 import org.littletonrobotics.urcl.URCL;
