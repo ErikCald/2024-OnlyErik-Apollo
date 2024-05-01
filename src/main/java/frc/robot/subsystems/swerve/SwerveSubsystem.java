@@ -110,13 +110,13 @@ public class SwerveSubsystem extends SubsystemBase {
             case APOLLO:
                 m_modules =
                         new SwerveModuleAbstract[] {
-                            new SwerveModuleSparkMaxCancoder(
+                            new SwerveModuleSparkMaxCancoderV5(
                                     Config.SwerveConfig.Mod0.constants, "FL"),
-                            new SwerveModuleSparkMaxCancoder(
+                            new SwerveModuleSparkMaxCancoderV5(
                                     Config.SwerveConfig.Mod1.constants, "FR"),
-                            new SwerveModuleSparkMaxCancoder(
+                            new SwerveModuleSparkMaxCancoderV5(
                                     Config.SwerveConfig.Mod2.constants, "BL"),
-                            new SwerveModuleSparkMaxCancoder(
+                            new SwerveModuleSparkMaxCancoderV5(
                                     Config.SwerveConfig.Mod3.constants, "BR")
                         };
                 break;
@@ -272,10 +272,14 @@ public class SwerveSubsystem extends SubsystemBase {
                     getRobotRelativeSpeeds().omegaRadiansPerSecond
                             < SwerveConfig.headingCorrectionRotatingDeadband;
             if (dontWantToRotate && wantToMove && notRotating) {
-                speeds.omegaRadiansPerSecond =
-                        m_holdHeadingPid.calculate(
-                                SwerveSubsystem.getInstance().getHeading().getRadians(),
-                                lastHeadingRadians);
+                if (getRobotRelativeSpeeds().omegaRadiansPerSecond < SwerveConfig.headingCorrectionDeadband) {
+                    speeds.omegaRadiansPerSecond = 0;
+                } else {
+                    speeds.omegaRadiansPerSecond =
+                            m_holdHeadingPid.calculate(
+                                    SwerveSubsystem.getInstance().getHeading().getRadians(),
+                                    lastHeadingRadians);
+                }
             } else {
                 lastHeadingRadians = getHeading().getRadians();
             }
@@ -287,6 +291,8 @@ public class SwerveSubsystem extends SubsystemBase {
                         m_currentSetpoint,
                         speeds,
                         GeneralConfig.loopPeriodSecs);
+
+        m_currentSetpoint = new SwerveSetpoint(speeds, SwerveConfig.swerveKinematics.toSwerveModuleStates(speeds));
 
         pubVelCmdX.accept(m_currentSetpoint.chassisSpeeds.vxMetersPerSecond);
         pubVelCmdY.accept(m_currentSetpoint.chassisSpeeds.vyMetersPerSecond);
@@ -603,7 +609,7 @@ public class SwerveSubsystem extends SubsystemBase {
         // Check if the swerve modules are synchronized and sync them if they are not
         if (DriverStation.isDisabled() && !isChassisMoving(0.01) && !areModulesRotating(2)) {
             if (++modSyncCounter > 6 && isSwerveNotSynched()) {
-                synchSwerve();
+                // synchSwerve();
                 pubNumSyncs.accept(pubNumSyncs.get() + 1);
                 modSyncCounter = 0;
             }
@@ -615,9 +621,9 @@ public class SwerveSubsystem extends SubsystemBase {
         SwerveModuleAbstract.updateTunableModuleConstants();
         TunableDouble.ifChanged(
                 hashCode(), () -> m_holdHeadingPid.setP(tunableHeadingkP.get()), tunableHeadingkP);
-        tunableXPid.checkForUpdates();
-        tunableYPid.checkForUpdates();
-        tunableRotPid.checkForUpdates();
+        // tunableXPid.checkForUpdates();
+        // tunableYPid.checkForUpdates();
+        // tunableRotPid.checkForUpdates();
 
         // Update NetworkTables
         pubPoseRot.accept(getPose().getRotation().getDegrees());

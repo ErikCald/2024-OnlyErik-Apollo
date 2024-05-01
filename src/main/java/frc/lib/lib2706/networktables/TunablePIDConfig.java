@@ -74,7 +74,9 @@ public class TunablePIDConfig {
     /**
      * Updates the PID controller with the current values of the tunable parameters.
      */
+    static int i = 0;
     public void updateValues() {
+        System.out.println("UPDATED " + i++);
         m_setConfig.accept(
                 new PIDConfig(
                         m_kF.get(), m_kP.get(), m_kI.get(), m_kD.get(), m_kIZone.get(), m_pidSlot));

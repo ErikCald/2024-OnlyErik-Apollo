@@ -31,6 +31,9 @@
       "SelectAuto": {
         "open": true
       },
+      "Shooter": {
+        "open": true
+      },
       "Shuffleboard": {
         "ArmDisplay": {
           "ArmDisplayMech": {
@@ -64,6 +67,9 @@
         "double[]##v_/SwerveChassis/Pose ": {
           "open": true
         },
+        "open": true
+      },
+      "URCL": {
         "open": true
       }
     }

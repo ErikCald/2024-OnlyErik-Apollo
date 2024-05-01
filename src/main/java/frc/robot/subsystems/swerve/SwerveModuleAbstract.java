@@ -120,9 +120,9 @@ public abstract class SwerveModuleAbstract {
      * This method checks for updates in the tunable drive feedforward, drive PID, and steer PID constants.
      */
     public static void updateTunableModuleConstants() {
-        s_tunableDriveFF.checkForUpdates();
-        s_tunableDrivePID.checkForUpdates();
-        s_tunableSteerPID.checkForUpdates();
+        // s_tunableDriveFF.checkForUpdates();
+        // s_tunableDrivePID.checkForUpdates();
+        // s_tunableSteerPID.checkForUpdates();
     }
 
     /**

@@ -49,34 +49,27 @@ import frc.robot.subsystems.vision.ApriltagSubsystem;
  */
 public class ApolloContainer extends RobotContainer {
     /* Controllers */
-    //     private final CommandXboxController driver = new CommandXboxController(0);
-    // private final CommandXboxController operator = new CommandXboxController(1);
-    // private final CommandXboxController testJoystick = new CommandXboxController(2);
+        private final CommandXboxController driver = new CommandXboxController(0);
+    private final CommandXboxController operator = new CommandXboxController(1);
+    private final CommandXboxController testJoystick = new CommandXboxController(2);
 
-    private final CommandXboxController driver =
-            new FakeCommandXboxController(0, FakeControllerType.EliminatorAfterShock);
-    private final CommandXboxController operator =
-            new FakeCommandXboxController(1, FakeControllerType.EliminatorAfterShock);
-    private final CommandXboxController testJoystick =
-            new FakeCommandXboxController(2, FakeControllerType.EliminatorAfterShock);
+//     private final CommandXboxController driver =
+//             new FakeCommandXboxController(0, FakeControllerType.EliminatorAfterShock);
+//     private final CommandXboxController operator =
+//             new FakeCommandXboxController(1, FakeControllerType.EliminatorAfterShock);
+//     private final CommandXboxController testJoystick =
+//             new FakeCommandXboxController(2, FakeControllerType.EliminatorAfterShock);
 
     /* Create Subsystems in a specific order */
     private final SwerveSubsystem swerve = SwerveSubsystem.getInstance();
     private final IntakeSubsystem intake = IntakeSubsystem.getInstance();
     private final ShooterSubsystem shooter = ShooterSubsystem.getInstance();
     private final ArmSubsystem arm = ArmSubsystem.getInstance();
-    private final ClimberSubsystem climber = ClimberSubsystem.getInstance();
+//     private final ClimberSubsystem climber = ClimberSubsystem.getInstance();
 
     /* Auto */
     private AutoRoutines m_autoRoutines;
     private AutoSelector m_autoSelector;
-
-    private TunableDouble shooterTargetRPM =
-            new TunableDouble("Target RPM", NTConfig.shooterTable, 0);
-    private TunableDouble shooterDesiredVoltage =
-            new TunableDouble("desired Voltage", NTConfig.shooterTable, 0);
-    private TunableDouble armAngleDeg =
-            new TunableDouble("ArmTuning/setAngleDeg", NTConfig.armTable, 5.0);
 
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -126,7 +119,7 @@ public class ApolloContainer extends RobotContainer {
          * Driver Controls
          */
         // Core Swerve Buttons
-        driver.back().onTrue(SwerveSubsystem.getInstance().setHeadingCommand(new Rotation2d(0)));
+        driver.back().onTrue(SwerveSubsystem.getInstance().setHeadingCommand(new Rotation2d(0)).andThen(Commands.runOnce(() -> System.out.println("REset odometry: " + swerve.getPose()))));
         driver.leftBumper()
                 .onTrue(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.SLOW)))
                 .onFalse(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.MAX)));
@@ -139,7 +132,7 @@ public class ApolloContainer extends RobotContainer {
 
         // Commands that take control of the rotation stick
         driver.y().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(0)));
-        driver.x().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(90)));
+                driver.x().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(90)));
         driver.a().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(180)));
         driver.b().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(270)));
 
@@ -161,9 +154,9 @@ public class ApolloContainer extends RobotContainer {
         operator.a().onTrue(arm.moveCommand(ArmSetpoint.STAGE_IDLE)); // Idle arm to go under stage
 
         // Climber
-        operator.leftTrigger(0.10)
-                .and(operator.back())
-                .whileTrue(climber.climberCommand(() -> operator.getLeftTriggerAxis()));
+        // operator.leftTrigger(0.10)
+        //         .and(operator.back())
+        //         .whileTrue(climber.climberCommand(() -> operator.getLeftTriggerAxis()));
 
         // Eject the note through the intake
         operator.start().whileTrue(intake.ejectNoteCommand().alongWith(shooter.ejectNoteCommand()));

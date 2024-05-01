@@ -276,9 +276,9 @@ public final class Config {
 
         /* Swerve Heading Correction */
         public static final boolean enableHeadingCorrection = true;
-        public static final double headingCorrectionDeadband = 0.01;
+        public static final double headingCorrectionDeadband = 0.05;
         public static final double headingCorrectionRotatingDeadband = Math.toRadians(60);
-        public static final double holdHeadingkP = 5.0;
+        public static final double holdHeadingkP = 2.0;
 
         /* Swerve Voltage Compensation Changed */
         public static final double driveVoltComp = 12.0;
@@ -291,7 +291,7 @@ public final class Config {
         /* Steer Motor PID Values, Changed */
         public static final double steerKP = robotSpecific(2.0, 30.0);
         public static final double steerKI = robotSpecific(0.0, 0.0);
-        public static final double steerKD = robotSpecific(0.1, 0.0);
+        public static final double steerKD = robotSpecific(0.0, 0.0);
         public static final double steerIZone = robotSpecific(0.0, 0.0);
 
         /* Drive Motor PID Values, Changed*/
@@ -335,8 +335,8 @@ public final class Config {
 
         public static enum ModuleLimits {
             // NEO V1.0/V1.1 L1 Modules has a Drivetrain Free Speed of 12.5 ft/s or 3.81 m/s
-            AUTO(new SwerveModuleLimits(3.5, 3.5 * 5, Math.toRadians(1080))),
-            TELEOP_FAST(new SwerveModuleLimits(3.5, 3.5 * 5, Math.toRadians(1080)));
+            AUTO(new SwerveModuleLimits(3.5, 3.5 * 3, Math.toRadians(1080))),
+            TELEOP_FAST(new SwerveModuleLimits(3.5, 3.5 * 3, Math.toRadians(1080)));
 
             public final SwerveModuleLimits setpoint;
 
