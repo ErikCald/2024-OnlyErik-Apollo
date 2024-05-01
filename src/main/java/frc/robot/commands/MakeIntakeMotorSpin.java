@@ -49,7 +49,7 @@ public class MakeIntakeMotorSpin extends Command {
     @Override
     public void end(boolean interrupted) {
         if (intakeSubsystem != null) {
-            intakeSubsystem.stop();
+            intakeSubsystem.stopMotors();
         }
 
         if (m_bUseTimer == true) {

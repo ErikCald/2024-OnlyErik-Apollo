@@ -158,7 +158,7 @@ public class ApolloContainer extends RobotContainer {
         // Eject the note from the front with start
         operator.start()
                 .whileTrue(Commands.run(() -> intake.setVoltage(-12), intake))
-                .onFalse(Commands.runOnce(() -> intake.stop()));
+                .onFalse(Commands.runOnce(() -> intake.stopMotors()));
 
         // operator.leftTrigger(0.3).whileTrue(
         operator.leftBumper()

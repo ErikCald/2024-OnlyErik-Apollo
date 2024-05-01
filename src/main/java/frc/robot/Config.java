@@ -445,6 +445,7 @@ public final class Config {
         public static final double reverseNoteVolts = -2.0;
         public static final double fireVolts = 9.0;
         public static final double intakeVolts = 9.0;
+        public static final double ejectVolts = -12.0;
     }
 
     public class ArmConfig {
@@ -521,6 +522,7 @@ public final class Config {
         public static final double subwooferRPM = 5500;
         public static final double farShotRPM = 8000;
         public static final double fireRPMThreshold = 100;
+        public static final double ejectVolts = -6.0;
 
         public static final PIDConfig pid0Config = new PIDConfig(0.0003, 0.0002, 0.0, 0.0, 0.0, 0);
         public static final PIDConfig pid1Config =

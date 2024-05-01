@@ -38,7 +38,9 @@ public class IntakeSubsystem extends SubsystemBase {
     private final Debouncer centerDebouncer, shooterSideDebouncer, shooterSideLongDebouncer;
     private final BooleanPublisher pubCenterSwitch, pubShooterSideSwitch, pubShooterSideLongSwitch;
     private boolean isCenterSwitchActive, isShooterSideSwitchActive, isShooterSideLongSwitchActive;
-    private final TunableDouble tunableReverseNoteVolts, tunableFireVolts, tunableIntakeVolts;
+    private final TunableDouble tunableReverseVolts, tunableFireVolts, tunableIntakeVolts;
+    private final TunableDouble tunableEjectVolts;
+            
 
     /**
      * The IntakeSubsystem class represents the intake mechanism of the robot.
@@ -87,10 +89,11 @@ public class IntakeSubsystem extends SubsystemBase {
                 table.getBooleanTopic("ShooterSideSwitchLong").publish(NTUtil.fastPeriodic());
 
         /* Setup tunable parameters */
-        tunableReverseNoteVolts =
+        tunableReverseVolts =
                 new TunableDouble("ReverseNote (volts)", table, IntakeConfig.reverseNoteVolts);
         tunableFireVolts = new TunableDouble("Fire (volts)", table, IntakeConfig.fireVolts);
         tunableIntakeVolts = new TunableDouble("Intake (volts)", table, IntakeConfig.intakeVolts);
+        tunableEjectVolts = new TunableDouble("Eject (volts)", table, IntakeConfig.ejectVolts);
 
         configureSpark("intake remove can timeout", () -> m_sparkmax.setCANTimeout(0));
         SparkMaxManagerSubsystem.getInstance()
@@ -160,7 +163,7 @@ public class IntakeSubsystem extends SubsystemBase {
      * Reverses the note by setting the voltage to the tunable reverse note volts.
      */
     public void reverseNote() {
-        setVoltage(tunableReverseNoteVolts.get());
+        setVoltage(tunableReverseVolts.get());
     }
 
     /**
@@ -175,6 +178,13 @@ public class IntakeSubsystem extends SubsystemBase {
      */
     public void intakeNote() {
         setVoltage(tunableIntakeVolts.get());
+    }
+
+    /**
+     * Ejects a note by setting the voltage of the intake subsystem to the tunable eject voltage.
+     */
+    public void ejectNote() {
+        setVoltage(tunableEjectVolts.get());
     }
 
     /**

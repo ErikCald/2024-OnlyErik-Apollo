@@ -53,7 +53,6 @@ public class ArmSubsystem extends SubsystemBase {
 
     private final ProfiledExternalPIDController m_profiledPID;
 
-    private final NetworkTable tunablesTable = NTConfig.armTable.getSubTable("Tunables");
     private final NetworkTable dataTable = NTConfig.armTable.getSubTable("Data");
     private final TunableProfiledPIDConfig tunableTransportPID0;
     private final TunablePIDConfig tunablePID1, tunablePID2, tunablePID3;

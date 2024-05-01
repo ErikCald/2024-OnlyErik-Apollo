@@ -45,7 +45,7 @@ public class IntakeControl extends Command {
     // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
-        intakeSubsystem.stop();
+        intakeSubsystem.stopMotors();
     }
 
     // Returns true when the command should end.

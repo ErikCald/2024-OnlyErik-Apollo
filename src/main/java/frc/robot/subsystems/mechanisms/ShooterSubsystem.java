@@ -38,6 +38,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private RelativeEncoder m_topEncoder, m_botEncoder;
     private DoublePublisher pubTopVel, pubBotVel;
     private TunableDouble tunableSubwooferVel, tunableFarShotVel, tunableFireThreshold;
+    private TunableDouble tunableEjectVolts;
     private TunablePIDConfig tunablePID0, tunablePID1, tunablePID3Slowdown;
 
     private double m_setpointRPM = 0;
@@ -88,6 +89,9 @@ public class ShooterSubsystem extends SubsystemBase {
                         "Release Threshold (RPM)",
                         NTConfig.shooterTable,
                         ShooterConfig.fireRPMThreshold);
+        tunableEjectVolts =
+                new TunableDouble(
+                        "Eject (volts)", NTConfig.shooterTable, ShooterConfig.ejectVolts);
 
         tunablePID0 =
                 new TunablePIDConfig(
@@ -267,6 +271,14 @@ public class ShooterSubsystem extends SubsystemBase {
         setRPM(tunableFarShotVel.get());
     }
 
+
+    /**
+     * Ejects a note by setting the voltage of the shooter subsystem to the tunable eject voltage.
+     */
+    public void ejectNote() {
+        setVoltage(tunableEjectVolts.get());
+    }
+
     /**
      * Checks if the current RPM of the shooter is within the specified threshold of the desired RPM.
      *
@@ -284,6 +296,24 @@ public class ShooterSubsystem extends SubsystemBase {
      */
     public boolean readyToFire() {
         return isWithinThreshold(m_setpointRPM);
+    }
+
+    /**
+     * Returns a Command object that stops the motors of the shooter subsystem.
+     *
+     * @return the Command object to stop the motors
+     */
+    public Command stopCommand() {
+        return runOnce(() -> stopMotors());
+    }
+
+    /**
+     * Create a Command to eject the note and stops the shooter when canceled.
+     *
+     * @return the Command object for ejecting a note
+     */
+    public Command ejectNoteCommand() {
+        return run(() -> ejectNote()).finallyDo(() -> stopMotors());
     }
 
     /**
@@ -305,7 +335,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     /**
      * Create a Command to spinup the shooter to the subwoofer velocity.
-     * Stops the shooter when done.
+     * Then runs brake mode until this Command is canceled by another Command.
      *
      * @return A Command that requires only the ShooterSubsystem
      */
@@ -315,7 +345,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     /**
      * Create a Command to spinup the shooter to the far shot velocity.
-     * Stops the shooter when done.
+     * Then runs brake mode until this Command is canceled by another Command.
      *
      * @return the Command that requires only the ShooterSubsystem
      */

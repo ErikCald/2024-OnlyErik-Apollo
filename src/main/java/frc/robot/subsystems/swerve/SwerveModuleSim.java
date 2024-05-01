@@ -33,7 +33,7 @@ public class SwerveModuleSim extends SwerveModuleAbstract {
     private final Rotation2d m_steerStartingAngle;
     private final SlewRateLimiter m_driveVoltsLimiter = new SlewRateLimiter(2.5);
 
-    private boolean m_steerBrakeMode, m_driveBrakeMode;
+    private boolean m_driveBrakeMode;
 
     public SwerveModuleSim(SwerveModuleConstants constants, String name) {
         super(constants, name);
@@ -50,7 +50,6 @@ public class SwerveModuleSim extends SwerveModuleAbstract {
         m_steerPID.enableContinuousInput(-Math.PI, Math.PI);
 
         m_driveBrakeMode = SwerveConfig.driveIdleMode == IdleMode.kBrake;
-        m_steerBrakeMode = SwerveConfig.steerIdleMode == IdleMode.kBrake;
 
         SwerveModuleAbstract.setupTunableValues(this);
         SparkMaxManagerSubsystem.getInstance()
@@ -240,7 +239,6 @@ public class SwerveModuleSim extends SwerveModuleAbstract {
     @Override
     public void setIdleMode(IdleMode drive, IdleMode steer) {
         m_driveBrakeMode = drive == IdleMode.kBrake;
-        m_steerBrakeMode = steer == IdleMode.kBrake;
     }
 
     /**
