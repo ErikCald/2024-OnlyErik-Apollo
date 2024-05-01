@@ -13,9 +13,13 @@ import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 
 import frc.lib.lib2706.networktables.NTUtil;
+import frc.lib.lib2706.networktables.TunableDouble;
 import frc.robot.Config.CANID;
 import frc.robot.Config.IntakeConfig;
 import frc.robot.Config.NTConfig;
@@ -34,6 +38,7 @@ public class IntakeSubsystem extends SubsystemBase {
     private final Debouncer centerDebouncer, shooterSideDebouncer, shooterSideLongDebouncer;
     private final BooleanPublisher pubCenterSwitch, pubShooterSideSwitch, pubShooterSideLongSwitch;
     private boolean isCenterSwitchActive, isShooterSideSwitchActive, isShooterSideLongSwitchActive;
+    private final TunableDouble tunableReverseNoteVolts, tunableFireVolts, tunableIntakeVolts;
 
     /**
      * The IntakeSubsystem class represents the intake mechanism of the robot.
@@ -81,6 +86,12 @@ public class IntakeSubsystem extends SubsystemBase {
         pubShooterSideLongSwitch =
                 table.getBooleanTopic("ShooterSideSwitchLong").publish(NTUtil.fastPeriodic());
 
+        /* Setup tunable parameters */
+        tunableReverseNoteVolts =
+                new TunableDouble("ReverseNote (volts)", table, IntakeConfig.reverseNoteVolts);
+        tunableFireVolts = new TunableDouble("Fire (volts)", table, IntakeConfig.fireVolts);
+        tunableIntakeVolts = new TunableDouble("Intake (volts)", table, IntakeConfig.intakeVolts);
+
         configureSpark("intake remove can timeout", () -> m_sparkmax.setCANTimeout(0));
         SparkMaxManagerSubsystem.getInstance()
                 .register(NTConfig.nonSwerveSparkMaxAlertGroup, m_sparkmax);
@@ -125,7 +136,7 @@ public class IntakeSubsystem extends SubsystemBase {
     /**
      * Stops the intake mechanism.
      */
-    public void stop() {
+    public void stopMotors() {
         m_sparkmax.stopMotor();
     }
 
@@ -143,5 +154,61 @@ public class IntakeSubsystem extends SubsystemBase {
         pubCenterSwitch.accept(isCenterSwitchActive);
         pubShooterSideSwitch.accept(isShooterSideSwitchActive);
         pubShooterSideLongSwitch.accept(isShooterSideLongSwitchActive);
+    }
+
+    /**
+     * Reverses the note by setting the voltage to the tunable reverse note volts.
+     */
+    public void reverseNote() {
+        setVoltage(tunableReverseNoteVolts.get());
+    }
+
+    /**
+     * Fires a note by setting the voltage of the intake subsystem to the value specified by tunableFireVolts.
+     */
+    public void fireNote() {
+        setVoltage(tunableFireVolts.get());
+    }
+
+    /**
+     * Sets the voltage of the intake mechanism to the value specified by tunableIntakeVolts.
+     */
+    public void intakeNote() {
+        setVoltage(tunableIntakeVolts.get());
+    }
+
+    /**
+     * Returns a Command object that stops the intake mechanism.
+     *
+     * @return the Command object that stops the intake mechanism
+     */
+    public Command stopCommand() {
+        return runOnce(() -> stopMotors());
+    }
+
+    /**
+     * Returns a Command to reverse the note until the shooter side proximity switch is no longer active.
+     *
+     * @return A command that requires the IntakeSubsystem.
+     */
+    public Command reverseNoteCommand() {
+        return run(() -> reverseNote()).until(() -> !shooterSideSwitch()).andThen(stopCommand());
+    }
+
+    /**
+     * Returns a Command object that fires a note.
+     *
+     * The Command will spin up the intake until the shooterSideSwitch becomes active and not active again.
+     * The intake is spindown once completed.
+     *
+     * @return the Command object that fires a note
+     */
+    public Command fireNoteCommand() {
+        return Commands.deadline(
+                        Commands.sequence(
+                                new WaitUntilCommand(() -> shooterSideSwitch()).withTimeout(0.2),
+                                new WaitUntilCommand(() -> !shooterSideSwitchLong())),
+                        run(() -> fireNote()))
+                .andThen(stopCommand());
     }
 }

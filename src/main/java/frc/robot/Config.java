@@ -226,8 +226,17 @@ public final class Config {
         }
     }
 
-    public static final class Climber_CANID {
-        public static int CLIMBER = CANID.CLIMBER.val();
+    public static final class ClimberConfig {
+        public static final boolean invertMotor = false;
+        public static final int currentLimit = 40;
+
+        public static final double gearRatio = 3 * 3 * 5; // 3:1 * 3:1 * 5:1 versaplantary stages
+        public static final double posConvFactor = 1.0 / gearRatio;
+        public static final double velConvFactor = posConvFactor / 60.0;
+
+        public static final double posForReducedSpeed = 3;
+        public static final double speedFast = 1.0;
+        public static final double speedSlow = 0.1;
     }
 
     public static final class SwerveConfig {
@@ -432,6 +441,10 @@ public final class Config {
         public static final int currentLimit = 60;
         public static final IdleMode idleMode = IdleMode.kBrake;
         public static final double voltageCompensation = 12.0;
+
+        public static final double reverseNoteVolts = -2.0;
+        public static final double fireVolts = 9.0;
+        public static final double intakeVolts = 9.0;
     }
 
     public class ArmConfig {
@@ -507,6 +520,7 @@ public final class Config {
     public static final class ShooterConfig {
         public static final double subwooferRPM = 5500;
         public static final double farShotRPM = 8000;
+        public static final double fireRPMThreshold = 100;
 
         public static final PIDConfig pid0Config = new PIDConfig(0.0003, 0.0002, 0.0, 0.0, 0.0, 0);
         public static final PIDConfig pid1Config =

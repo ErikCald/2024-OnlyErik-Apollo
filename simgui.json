@@ -11,6 +11,23 @@
   },
   "NetworkTables": {
     "transitory": {
+      "Arm": {
+        "Data": {
+          "open": true
+        },
+        "TransportPID0": {
+          "TuneProfiledPID": {
+            "TunePID": {
+              "open": true
+            },
+            "open": true
+          }
+        },
+        "Tunables": {
+          "open": true
+        },
+        "open": true
+      },
       "SelectAuto": {
         "open": true
       },

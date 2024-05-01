@@ -36,11 +36,11 @@ public class TunableProfiledPIDConfig {
         m_setConfig = setConfig;
         m_currentPIDConfig = pidConfig;
 
-        m_velConstraint = new TunableDouble("VelConstraint", table, velConstraint);
-        m_accelConstraint = new TunableDouble("AccelConstraint", table, accelConstraint);
+        NetworkTable pidTable = table.getSubTable("TuneProfiledPID");
+        m_velConstraint = new TunableDouble("VelConstraint", pidTable, velConstraint);
+        m_accelConstraint = new TunableDouble("AccelConstraint", pidTable, accelConstraint);
 
-        NetworkTable ffTable = table.getSubTable("TuneProfiledPID");
-        m_tunablePIDConfig = new TunablePIDConfig(this::pidConfigHasUpdates, ffTable, pidConfig);
+        m_tunablePIDConfig = new TunablePIDConfig(this::pidConfigHasUpdates, pidTable, pidConfig);
 
         // Set the initial values to the defaults or to previously set values on networktables
         updateValues();

@@ -143,7 +143,7 @@ public class ArmSubsystem extends SubsystemBase {
         /* Setup tunable encoder offset */
         tunableAbsOffset =
                 new TunableDouble(
-                        "AbsEncoderOffset (deg)", tunablesTable, ArmConfig.absEncoderOffset);
+                        "AbsEncoderOffset (deg)", NTConfig.armTable, ArmConfig.absEncoderOffset);
 
         /* Setup the profiled pid controller */
         m_profiledPID = ArmConfig.transportPIDConfig.createExternalController();
@@ -184,7 +184,7 @@ public class ArmSubsystem extends SubsystemBase {
         pubCurrSetpoint = NTUtil.doublePubFast(dataTable, "CurrSetpoint (deg)");
         pubGoalSetpoint = NTUtil.doublePubFast(dataTable, "GoalSetpoint (deg)");
         pubMeasPos = NTUtil.doublePubFast(dataTable, "MeasPos (deg)");
-        pubMeasVel = NTUtil.doublePubFast(dataTable, "MeasVel (deg/s)");
+        pubMeasVel = NTUtil.doublePubFast(dataTable, "MeasVel (deg per sec)");
         pubActivePIDSlot =
                 dataTable.getIntegerTopic("ActivePIDSlot").publish(NTUtil.fastPeriodic());
 

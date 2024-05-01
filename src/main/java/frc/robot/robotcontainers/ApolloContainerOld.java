@@ -46,7 +46,7 @@ import frc.robot.subsystems.swerve.SwerveSubsystem;
  * (including subsystems, commands, and button mappings) should be declared
  * here.
  */
-public class ApolloContainer extends RobotContainer {
+public class ApolloContainerOld extends RobotContainer {
     /* Controllers */
     //     private final CommandXboxController driver = new CommandXboxController(0);
     // private final CommandXboxController operator = new CommandXboxController(1);
@@ -60,13 +60,16 @@ public class ApolloContainer extends RobotContainer {
             new FakeCommandXboxController(2, FakeControllerType.EliminatorAfterShock);
 
     /* Create Subsystems in a specific order */
-    private final SwerveSubsystem swerve = SwerveSubsystem.getInstance();
+    private final SwerveSubsystem s_Swerve = SwerveSubsystem.getInstance();
     private final IntakeSubsystem intake = IntakeSubsystem.getInstance();
     private final ShooterSubsystem shooter = ShooterSubsystem.getInstance();
 
     /* Auto */
     private AutoRoutines m_autoRoutines;
     private AutoSelector m_autoSelector;
+
+    /* Default Command */
+    private Command m_swerveDefaultCommand;
 
     private TunableDouble shooterTargetRPM =
             new TunableDouble("Target RPM", NTConfig.shooterTable, 0);
@@ -78,10 +81,10 @@ public class ApolloContainer extends RobotContainer {
     /**
      * The container for the robot. Contains subsystems, OI devices, and commands.
      */
-    public ApolloContainer() {
+    public ApolloContainerOld() {
         /*  Setup default commands */
-        swerve.setDefaultCommand(new TeleopSwerve(driver));
-        shooter.setDefaultCommand(shooter.slowdownCommand());
+        m_swerveDefaultCommand = new TeleopSwerve(driver);
+        s_Swerve.setDefaultCommand(m_swerveDefaultCommand);
 
         configureButtonBindings();
 

@@ -39,7 +39,7 @@ public class TunablePIDConfig {
         m_pidSlot = pidSlot;
 
         NetworkTable ffTable = table.getSubTable("TunePID");
-        m_kF = new TunableDouble("F", ffTable, kF);
+        m_kF = new TunableDouble("ff", ffTable, kF);
         m_kP = new TunableDouble("P", ffTable, kP);
         m_kI = new TunableDouble("I", ffTable, kI);
         m_kD = new TunableDouble("D", ffTable, kD);

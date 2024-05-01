@@ -11,6 +11,8 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkPIDController;
 
 import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.controllers.PIDConfig;
@@ -35,8 +37,10 @@ public class ShooterSubsystem extends SubsystemBase {
     private SparkPIDController m_topSparkPID, m_botSparkPID;
     private RelativeEncoder m_topEncoder, m_botEncoder;
     private DoublePublisher pubTopVel, pubBotVel;
-    private TunableDouble tunableSubwooferVel, tunableFarShotVel;
+    private TunableDouble tunableSubwooferVel, tunableFarShotVel, tunableFireThreshold;
     private TunablePIDConfig tunablePID0, tunablePID1, tunablePID3Slowdown;
+
+    private double m_setpointRPM = 0;
 
     /**
      * The ShooterSubsystem class represents the shooter mechanism of the robot.
@@ -79,6 +83,11 @@ public class ShooterSubsystem extends SubsystemBase {
         tunableFarShotVel =
                 new TunableDouble(
                         "Far Shot Vel (RPM)", NTConfig.shooterTable, ShooterConfig.farShotRPM);
+        tunableFireThreshold =
+                new TunableDouble(
+                        "Release Threshold (RPM)",
+                        NTConfig.shooterTable,
+                        ShooterConfig.fireRPMThreshold);
 
         tunablePID0 =
                 new TunablePIDConfig(
@@ -184,6 +193,7 @@ public class ShooterSubsystem extends SubsystemBase {
     public void stopMotors() {
         m_botSpark.stopMotor();
         m_topSpark.stopMotor();
+        m_setpointRPM = 0;
     }
 
     /**
@@ -204,19 +214,112 @@ public class ShooterSubsystem extends SubsystemBase {
         return m_topEncoder.getVelocity();
     }
 
+    /**
+     * Sets the RPM (Rotations Per Minute) for the shooter mechanism.
+     *
+     * @param vel the desired RPM value
+     */
     public void setRPM(double vel) {
-        int slotID = 1;
+        int slotID = 0;
+        if (vel <= 50) {
+            slotID = 3; // Slowdown PID
+        } else {
+            slotID = 1; // Normal PID
+        }
+
         m_topSparkPID.setReference(vel, ControlType.kVelocity, slotID);
         m_botSparkPID.setReference(vel, ControlType.kVelocity, slotID);
+
+        m_setpointRPM = vel;
     }
 
+    /**
+     * Sets the voltage for the shooter mechanism.
+     *
+     * @param volts the voltage to set for the shooter mechanism
+     */
     public void setVoltage(double volts) {
         m_topSpark.setVoltage(volts);
         m_botSpark.setVoltage(volts);
     }
 
+    /**
+     * Sets the brake mode for the shooter mechanism.
+     *
+     * @param enableBrake true to enable brake mode, false to enable coast mode
+     */
     public void setBrake(boolean enableBreak) {
         m_topSpark.setIdleMode(enableBreak ? IdleMode.kBrake : IdleMode.kCoast);
         m_botSpark.setIdleMode(enableBreak ? IdleMode.kBrake : IdleMode.kCoast);
+    }
+
+    /**
+     * Sets the RPM of the Shooter for subwoofer shots.
+     */
+    public void setSubwooferRPM() {
+        setRPM(tunableSubwooferVel.get());
+    }
+
+    /**
+     * Sets the RPM of the Shooter for far shots.
+     */
+    public void setFarShotRPM() {
+        setRPM(tunableFarShotVel.get());
+    }
+
+    /**
+     * Checks if the current RPM of the shooter is within the specified threshold of the desired RPM.
+     *
+     * @param desiredRPM the desired RPM of the shooter
+     * @return true if the current RPM is within the threshold, false otherwise
+     */
+    public boolean isWithinThreshold(double desiredRPM) {
+        return Math.abs(getTopVelRPM() - desiredRPM) < tunableFireThreshold.get();
+    }
+
+    /**
+     * Checks if the shooter is ready to fire based on the setpoint RPM.
+     *
+     * @return true if the shooter is ready to fire, false otherwise.
+     */
+    public boolean readyToFire() {
+        return isWithinThreshold(m_setpointRPM);
+    }
+
+    /**
+     * Create a Command to slow down the shooter.
+     * Runs PID to reduce the speed of the Shooter to 0.
+     * Then runs brake mode until this Command is canceled by another Command.
+     *
+     * Uses an RPM of -5 instead of 0 to ensure PID is used to slow down the shooter.
+     *
+     * @return A Command that requires only the ShooterSubsystem
+     */
+    public Command slowdownCommand() {
+        return Commands.sequence(
+                runOnce(() -> setBrake(false)),
+                run(() -> setRPM(-5)).until(() -> isWithinThreshold(-5)),
+                runOnce(() -> setBrake(true)),
+                run(() -> stopMotors()));
+    }
+
+    /**
+     * Create a Command to spinup the shooter to the subwoofer velocity.
+     * Stops the shooter when done.
+     *
+     * @return A Command that requires only the ShooterSubsystem
+     */
+    public Command subwooferCommand() {
+        return run(() -> setSubwooferRPM()).finallyDo(() -> stopMotors());
+    }
+
+    /**
+     * Create a Command to spinup the shooter to the far shot velocity.
+     * Stops the shooter when done.
+     *
+     * @return the Command that requires only the ShooterSubsystem
+     */
+    public Command farShotCommand() {
+        return run(() -> setFarShotRPM()).finallyDo(() -> stopMotors());
     }
 }

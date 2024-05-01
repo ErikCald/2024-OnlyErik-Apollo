@@ -38,7 +38,7 @@ public class ClimberRPM extends Command {
         if (climber == null) {
             return;
         } else {
-            climber.StartClimberRPM(m_getPercentOutput.getAsDouble());
+            climber.setVoltage(m_getPercentOutput.getAsDouble());
             System.out.println(m_getPercentOutput);
         }
     }
@@ -46,7 +46,7 @@ public class ClimberRPM extends Command {
     // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
-        if (climber != null) climber.stop();
+        if (climber != null) climber.stopMotors();
     }
 
     // Returns true when the command should end.
