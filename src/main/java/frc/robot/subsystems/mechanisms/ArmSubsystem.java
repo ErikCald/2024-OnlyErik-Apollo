@@ -22,6 +22,7 @@ import edu.wpi.first.networktables.DoubleArrayPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.IntegerPublisher;
 import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.lib.lib2706.SubsystemChecker;
@@ -34,6 +35,7 @@ import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.networktables.TunablePIDConfig;
 import frc.lib.lib2706.networktables.TunableProfiledPIDConfig;
 import frc.robot.Config.ArmConfig;
+import frc.robot.Config.ArmConfig.ArmSetpoint;
 import frc.robot.Config.CANID;
 import frc.robot.Config.NTConfig;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
@@ -248,6 +250,15 @@ public class ArmSubsystem extends SubsystemBase {
     }
 
     /**
+     * Moves the arm to the specified setpoint.
+     *
+     * @param setpoint The setpoint to move the arm to.
+     */
+    public void moveToSetpoint(ArmSetpoint setpoint) {
+        setAngle(setpoint.getDegrees());
+    }
+
+    /**
      * Sets the angle of the arm subsystem to the specified value.
      *
      * @param angleDeg the desired angle in degrees
@@ -319,6 +330,17 @@ public class ArmSubsystem extends SubsystemBase {
     }
 
     /**
+     * Checks if the arm is at the specified setpoint.
+     *
+     * @param setpoint The desired arm setpoint.
+     * @return True if the arm is at the setpoint, false otherwise.
+     */
+    public boolean isAtSetpoint(ArmSetpoint setpoint) {
+        return Math.abs(getAngleRad() - Math.toRadians(setpoint.getDegrees()))
+                < ArmConfig.errorThresholdRad;
+    }
+
+    /**
      * Publishes the pose of the arm for AdvantageScope to display with the CAD model.
      *
      * @param angleDeg the angle in radians
@@ -345,5 +367,29 @@ public class ArmSubsystem extends SubsystemBase {
      */
     public void stopMotors() {
         m_sparkmax.stopMotor();
+    }
+
+    public Command stopCommand() {
+        return runOnce(() -> stopMotors());
+    }
+
+    /**
+     * Creates a command to move the arm to the specified setpoint.
+     *
+     * @param setpoint The desired setpoint for the arm.
+     * @return The command to move the arm to the setpoint.
+     */
+    public Command moveCommand(ArmSetpoint setpoint) {
+        return run(() -> moveToSetpoint(setpoint));
+    }
+
+    /**
+     * Returns a Command object that holds the arm at its current angle.
+     *
+     * @return the Command object that holds the arm at its current angle
+     */
+    public Command holdArmCommand() {
+        double angleDeg = Math.toDegrees(getAngleRad());
+        return run(() -> setAngle(angleDeg));
     }
 }

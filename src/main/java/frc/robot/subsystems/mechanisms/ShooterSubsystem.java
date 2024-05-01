@@ -22,6 +22,7 @@ import frc.lib.lib2706.networktables.TunablePIDConfig;
 import frc.robot.Config.CANID;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.ShooterConfig;
+import frc.robot.Config.ShooterConfig.ShooterSetpoint;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 /**
@@ -37,7 +38,6 @@ public class ShooterSubsystem extends SubsystemBase {
     private SparkPIDController m_topSparkPID, m_botSparkPID;
     private RelativeEncoder m_topEncoder, m_botEncoder;
     private DoublePublisher pubTopVel, pubBotVel;
-    private TunableDouble tunableSubwooferVel, tunableFarShotVel, tunableFireThreshold;
     private TunableDouble tunableEjectVolts;
     private TunablePIDConfig tunablePID0, tunablePID1, tunablePID3Slowdown;
 
@@ -78,20 +78,8 @@ public class ShooterSubsystem extends SubsystemBase {
         pubBotVel = NTUtil.doublePubFast(NTConfig.shooterTable, "Bot Vel (RPM)");
 
         /* Setup Tunable values */
-        tunableSubwooferVel =
-                new TunableDouble(
-                        "Subwoofer Vel (RPM)", NTConfig.shooterTable, ShooterConfig.subwooferRPM);
-        tunableFarShotVel =
-                new TunableDouble(
-                        "Far Shot Vel (RPM)", NTConfig.shooterTable, ShooterConfig.farShotRPM);
-        tunableFireThreshold =
-                new TunableDouble(
-                        "Release Threshold (RPM)",
-                        NTConfig.shooterTable,
-                        ShooterConfig.fireRPMThreshold);
         tunableEjectVolts =
-                new TunableDouble(
-                        "Eject (volts)", NTConfig.shooterTable, ShooterConfig.ejectVolts);
+                new TunableDouble("Eject (volts)", NTConfig.shooterTable, ShooterConfig.ejectVolts);
 
         tunablePID0 =
                 new TunablePIDConfig(
@@ -258,19 +246,13 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Sets the RPM of the Shooter for subwoofer shots.
+     * Spins the shooter mechanism to the specified setpoint.
+     *
+     * @param setpoint The desired shooter setpoint.
      */
-    public void setSubwooferRPM() {
-        setRPM(tunableSubwooferVel.get());
+    public void spinToSetpoint(ShooterSetpoint setpoint) {
+        setRPM(setpoint.getRPM());
     }
-
-    /**
-     * Sets the RPM of the Shooter for far shots.
-     */
-    public void setFarShotRPM() {
-        setRPM(tunableFarShotVel.get());
-    }
-
 
     /**
      * Ejects a note by setting the voltage of the shooter subsystem to the tunable eject voltage.
@@ -280,22 +262,14 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Checks if the current RPM of the shooter is within the specified threshold of the desired RPM.
+     * Checks if the shooter is at the specified setpoint.
      *
-     * @param desiredRPM the desired RPM of the shooter
-     * @return true if the current RPM is within the threshold, false otherwise
+     * @param setpoint The desired shooter setpoint.
+     * @return True if the shooter is at the setpoint, false otherwise.
      */
-    public boolean isWithinThreshold(double desiredRPM) {
-        return Math.abs(getTopVelRPM() - desiredRPM) < tunableFireThreshold.get();
-    }
-
-    /**
-     * Checks if the shooter is ready to fire based on the setpoint RPM.
-     *
-     * @return true if the shooter is ready to fire, false otherwise.
-     */
-    public boolean readyToFire() {
-        return isWithinThreshold(m_setpointRPM);
+    public boolean isAtSetpoint(ShooterSetpoint setpoint) {
+        return Math.abs(getTopVelRPM() - setpoint.getRPM())
+                < ShooterSetpoint.FIRE_THRESHLD.getRPM();
     }
 
     /**
@@ -328,28 +302,19 @@ public class ShooterSubsystem extends SubsystemBase {
     public Command slowdownCommand() {
         return Commands.sequence(
                 runOnce(() -> setBrake(false)),
-                run(() -> setRPM(-5)).until(() -> isWithinThreshold(-5)),
+                run(() -> spinToSetpoint(ShooterSetpoint.SLOWDOWN))
+                        .until(() -> isAtSetpoint(ShooterSetpoint.SLOWDOWN)),
                 runOnce(() -> setBrake(true)),
                 run(() -> stopMotors()));
     }
 
     /**
-     * Create a Command to spinup the shooter to the subwoofer velocity.
-     * Then runs brake mode until this Command is canceled by another Command.
+     * Creates a command to spin the shooter to the specified setpoint.
      *
-     * @return A Command that requires only the ShooterSubsystem
+     * @param setpoint The desired setpoint for the shooter.
+     * @return The command to spin the shooter to the setpoint.
      */
-    public Command subwooferCommand() {
-        return run(() -> setSubwooferRPM()).finallyDo(() -> stopMotors());
-    }
-
-    /**
-     * Create a Command to spinup the shooter to the far shot velocity.
-     * Then runs brake mode until this Command is canceled by another Command.
-     *
-     * @return the Command that requires only the ShooterSubsystem
-     */
-    public Command farShotCommand() {
-        return run(() -> setFarShotRPM()).finallyDo(() -> stopMotors());
+    public Command spinCommand(ShooterSetpoint setpoint) {
+        return run(() -> spinToSetpoint(setpoint));
     }
 }

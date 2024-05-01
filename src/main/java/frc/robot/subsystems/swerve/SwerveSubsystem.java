@@ -37,6 +37,7 @@ import frc.lib.lib2706.networktables.NTUtil;
 import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.networktables.TunableProfiledPIDConfig;
 import frc.lib.lib2706.swerve.PoseBuffer;
+import frc.lib.lib6328.AllianceFlipUtil;
 import frc.robot.Config;
 import frc.robot.Config.CANID;
 import frc.robot.Config.GeneralConfig;
@@ -462,16 +463,12 @@ public class SwerveSubsystem extends SubsystemBase {
      * Returns a Command object that drives the robot to the desired pose.
      *
      * @param desiredPose The desired pose for the robot to drive to.
+     * @param flipForAlliance True to flip the pose for the red alliance, false otherwise.
      * @return A Command object that drives the robot to the desired pose.
      */
-    public Command getDriveToPoseCommand(Pose2d desiredPose) {
+    public Command getDriveToPoseCommand(Pose2d desiredPose, boolean flipForAlliance) {
         return runOnce(() -> resetDriveToPose())
-                .andThen(run(() -> driveToPose(desiredPose)))
-                .until(
-                        () ->
-                                isAtPose(
-                                        SwerveConfig.translationTolerance,
-                                        SwerveConfig.angleTolerance));
+                .andThen(run(() -> driveToPose(desiredPose, flipForAlliance)));
     }
 
     /**
@@ -503,8 +500,13 @@ public class SwerveSubsystem extends SubsystemBase {
      * Drives the robot to a specified pose.
      *
      * @param pose The desired pose to drive to.
+     * @param flipForAlliance True to flip the pose for the red alliance, false otherwise.
      */
-    public void driveToPose(Pose2d pose) {
+    public void driveToPose(Pose2d pose, boolean flipForAlliance) {
+        if (flipForAlliance) {
+            AllianceFlipUtil.apply(pose);
+        }
+
         double xSpeed = 0;
         double ySpeed = 0;
         double rotSpeed = 0;
@@ -540,17 +542,28 @@ public class SwerveSubsystem extends SubsystemBase {
     /**
      * Checks if the robot is at the desired pose within a given tolerance.
      *
-     * @param posTol    The tolerance for the position coordinates (X and Y).
-     * @param angleTol  The tolerance for the angle in radians.
-     * @return          True if the robot is at the desired pose, false otherwise.
+     * @param tightTolerance True for a tight tolerance, false for a loose tolerance
      */
-    public boolean isAtPose(double posTol, double angleTol) {
+    public boolean isAtPose(boolean tightTolerance) {
+        double posTol, angleTol;
+        if (tightTolerance) {
+            posTol = SwerveConfig.posTolerance;
+            angleTol = SwerveConfig.angleTolerance;
+        } else {
+            posTol = SwerveConfig.loosePosTolerance;
+            angleTol = SwerveConfig.looseAngleTolerance;
+        }
+
         double angleError = getHeading().getRadians() - m_desiredPose.getRotation().getRadians();
+        ChassisSpeeds speeds = getFieldRelativeSpeeds();
 
         return m_desiredPose != null // If we haven't set a pose, we can't be at it
                 && Math.abs(getPose().getX() - m_desiredPose.getX()) < posTol
                 && Math.abs(getPose().getY() - m_desiredPose.getY()) < posTol
-                && Math.abs(MathUtil.angleModulus(angleError)) < angleTol;
+                && Math.abs(MathUtil.angleModulus(angleError)) < angleTol
+                && Math.abs(speeds.vxMetersPerSecond) < SwerveConfig.velTolerance
+                && Math.abs(speeds.vxMetersPerSecond) < SwerveConfig.velTolerance
+                && Math.abs(speeds.omegaRadiansPerSecond) < SwerveConfig.angleVelTolerance;
     }
 
     /**

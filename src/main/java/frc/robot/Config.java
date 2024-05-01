@@ -3,6 +3,7 @@ package frc.robot;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.revrobotics.CANSparkBase.IdleMode;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
@@ -20,6 +21,9 @@ import frc.lib.lib2706.controllers.PIDConfig;
 import frc.lib.lib2706.controllers.ProfiledPIDConfig;
 import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
+import frc.lib.lib6328.AllianceFlipUtil;
+import frc.robot.Config.ArmConfig.ArmSetpoint;
+import frc.robot.Config.ShooterConfig.ShooterSetpoint;
 
 import java.io.BufferedReader;
 import java.nio.file.Files;
@@ -198,8 +202,10 @@ public final class Config {
         public static final double loopPeriodSecs = 0.02;
     }
 
-    public static final boolean disableStateBasedProgramming =
-            true; // True to disable state based programming and use only simple commands
+    public class FieldConstants {
+        public static final double fieldLength = Units.inchesToMeters(651.223);
+        public static final double fieldWidth = Units.inchesToMeters(323.277);
+    }
 
     public static final class RioConfig {
         public static int ANALOG_SELECTOR_PORT = robotSpecific(3, 3, -1, 0);
@@ -320,8 +326,10 @@ public final class Config {
         public static final double translationAllowableError = 0.01;
         public static final double rotationAllowableError = Math.toRadians(0.7);
 
-        public static final double translationTolerance = 0.08;
+        public static final double posTolerance = 0.08;
         public static final double angleTolerance = Math.toRadians(1.0);
+        public static final double loosePosTolerance = 0.3;
+        public static final double looseAngleTolerance = Math.toRadians(5.0);
         public static final double velTolerance = 0.3;
         public static final double angleVelTolerance = Math.toRadians(5.0);
 
@@ -456,6 +464,8 @@ public final class Config {
         public static final double shiftEncoderRange = 10;
         public static final double absEncoderOffset = Math.toDegrees(3.20433) + 3.0;
 
+        public static final double errorThresholdRad = Math.toRadians(0.5);
+
         public static final double MAX_ARM_ANGLE_DEG = 180;
         public static final double MIN_ARM_ANGLE_DEG = -2;
 
@@ -497,18 +507,18 @@ public final class Config {
 
         public static final double voltsAtHorizontal = 0.000005;
 
-        public static enum ArmSetpoints {
-            IDLE(60.0),
+        public static enum ArmSetpoint {
+            SAFE_IDLE(60.0),
+            STAGE_IDLE(5.0),
             INTAKE(-0.1),
-            SPEAKER_KICKBOT_SHOT(15.5),
-            NO_INTAKE(5.0),
+            SUBWOOFER_SHOT(15.5),
             SPEAKER_VISION_SHOT(33),
             AMP(100);
 
             private final TunableDouble tunable;
             private final NetworkTable table = NTConfig.armTable.getSubTable("Setpoints (deg)");
 
-            ArmSetpoints(double deg) {
+            ArmSetpoint(double deg) {
                 tunable = new TunableDouble(name(), table, deg);
             }
 
@@ -518,10 +528,31 @@ public final class Config {
         }
     }
 
+    /**
+     * Fixed positions on the field to drive to and fire from.
+     */
+    public static enum FixedPosition {
+        CENTER_SHOT(
+                ShooterSetpoint.FAR_SHOT,
+                ArmSetpoint.SAFE_IDLE,
+                new Pose2d(0, 0, new Rotation2d()));
+
+        public final ShooterSetpoint shooter;
+        public final ArmSetpoint arm;
+        public final Pose2d blueAlliancePose;
+
+        private FixedPosition(ShooterSetpoint shooter, ArmSetpoint arm, Pose2d pose) {
+            this.shooter = shooter;
+            this.arm = arm;
+            this.blueAlliancePose = pose;
+        }
+
+        public Pose2d getPoseForAlliance() {
+            return AllianceFlipUtil.apply(blueAlliancePose);
+        }
+    }
+
     public static final class ShooterConfig {
-        public static final double subwooferRPM = 5500;
-        public static final double farShotRPM = 8000;
-        public static final double fireRPMThreshold = 100;
         public static final double ejectVolts = -6.0;
 
         public static final PIDConfig pid0Config = new PIDConfig(0.0003, 0.0002, 0.0, 0.0, 0.0, 0);
@@ -539,6 +570,26 @@ public final class Config {
 
         public static final double gearRatio = 2.0; // Above 1.0 for a speed increase
         public static final double velConvFactor = gearRatio; // RPM of Rollers
+
+        public enum ShooterSetpoint {
+            SUBWOOFER(5500),
+            FAR_SHOT(8000),
+            AMP(1000),
+
+            FIRE_THRESHLD(100),
+            SLOWDOWN(-5);
+
+            private final TunableDouble tunable;
+            private final NetworkTable table = NTConfig.shooterTable.getSubTable("Setpoints (RPM)");
+
+            ShooterSetpoint(double rpm) {
+                tunable = new TunableDouble(name(), table, rpm);
+            }
+
+            public double getRPM() {
+                return tunable.get();
+            }
+        }
     }
 
     /**

@@ -16,10 +16,10 @@ import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 
-import frc.robot.commands.IntakeControl;
 import frc.robot.commands.characterization.StaticCharacterizationCommand;
 import frc.robot.commands.characterization.VelocityCharacterizationCommand;
 import frc.robot.commands.characterization.WheelDiameterCharacterizationCommand;
+import frc.robot.subsystems.mechanisms.IntakeSubsystem;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
 
 import java.util.ArrayList;
@@ -38,7 +38,8 @@ public class AutoRoutines extends SubsystemBase {
     }
 
     public void registerCommandsToPathplanner() {
-        NamedCommands.registerCommand("IntakeControlFalse", new IntakeControl(false));
+        NamedCommands.registerCommand(
+                "IntakeControlFalse", IntakeSubsystem.getInstance().reverseNoteCommand());
     }
 
     public void addToChooser(SendableChooser<Command> chooser) {

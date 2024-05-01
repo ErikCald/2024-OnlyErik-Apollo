@@ -4,39 +4,40 @@
 
 package frc.robot.robotcontainers;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import frc.lib.lib2706.button.FakeCommandXboxController;
 import frc.lib.lib2706.button.FakeCommandXboxController.FakeControllerType;
 import frc.lib.lib2706.networktables.TunableDouble;
-import frc.robot.Config.ArmConfig.ArmSetpoints;
+import frc.robot.Config.ArmConfig.ArmSetpoint;
 import frc.robot.Config.NTConfig;
+import frc.robot.Config.ShooterConfig.ShooterSetpoint;
 import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.Robot;
 import frc.robot.commands.BlingCommand;
 import frc.robot.commands.BlingCommand.BlingColour;
-import frc.robot.commands.ClimberRPM;
-import frc.robot.commands.CombinedCommands;
-import frc.robot.commands.MakeIntakeMotorSpin;
 import frc.robot.commands.RotateToAngle;
 import frc.robot.commands.RumbleJoystick;
-import frc.robot.commands.SetArm;
-import frc.robot.commands.SubwooferShot;
+import frc.robot.commands.TeleopShot;
 import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.auto.AutoRoutines;
 import frc.robot.commands.auto.AutoSelector;
+import frc.robot.subsystems.mechanisms.ArmSubsystem;
+import frc.robot.subsystems.mechanisms.ClimberSubsystem;
 import frc.robot.subsystems.mechanisms.IntakeSubsystem;
 import frc.robot.subsystems.mechanisms.ShooterSubsystem;
 import frc.robot.subsystems.misc.CreateShuffleboardLayout;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 import frc.robot.subsystems.swerve.SwerveSubsystem;
+import frc.robot.subsystems.vision.ApriltagSubsystem;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -63,6 +64,8 @@ public class ApolloContainer extends RobotContainer {
     private final SwerveSubsystem swerve = SwerveSubsystem.getInstance();
     private final IntakeSubsystem intake = IntakeSubsystem.getInstance();
     private final ShooterSubsystem shooter = ShooterSubsystem.getInstance();
+    private final ArmSubsystem arm = ArmSubsystem.getInstance();
+    private final ClimberSubsystem climber = ClimberSubsystem.getInstance();
 
     /* Auto */
     private AutoRoutines m_autoRoutines;
@@ -104,7 +107,11 @@ public class ApolloContainer extends RobotContainer {
         // Set bling to purple when note is in
 
         new Trigger(() -> intake.shooterSideSwitch())
-                .onTrue(CombinedCommands.strobeToSolidBlingCommand())
+                .onTrue(
+                        Commands.sequence(
+                                new BlingCommand(BlingColour.PURPLESTROBE),
+                                new WaitCommand(2),
+                                new BlingCommand(BlingColour.PURPLE)))
                 .onFalse(new BlingCommand(BlingColour.DISABLED));
 
         new Trigger(() -> intake.shooterSideSwitchLong() && DriverStation.isTeleopEnabled())
@@ -117,7 +124,6 @@ public class ApolloContainer extends RobotContainer {
 
         /**
          * Driver Controls
-         * KingstonV1: https://drive.google.com/file/d/1gDgxnz-agWGoYmTTRfViVPwR7O2H80mh
          */
         // Core Swerve Buttons
         driver.back().onTrue(SwerveSubsystem.getInstance().setHeadingCommand(new Rotation2d(0)));
@@ -137,100 +143,53 @@ public class ApolloContainer extends RobotContainer {
         driver.a().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(180)));
         driver.b().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(270)));
 
+        // Vision command that only schedules when we have good apriltag data
+        driver.rightTrigger()
+                .and(() -> ApriltagSubsystem.getInstance().hasGoodData())
+                .whileTrue(new InstantCommand());
+
         /**
          * Operator Controls
-         * KingstonV1: https://drive.google.com/file/d/18HyIpIeW08CC6r6u-Z74xBWRv9opHnoZ
          */
+        // Cancel any active shooter and intake commands
+        operator.back()
+                .onTrue(Commands.idle(shooter, intake).withTimeout(0.1))
+                .onTrue(arm.holdArmCommand());
+
         // Arm
-        operator.y().onTrue(new SetArm(() -> ArmSetpoints.AMP.getDegrees())); // Amp
-        operator.b().onTrue(new SetArm(() -> ArmSetpoints.IDLE.getDegrees())); // Idle
-        operator.a().onTrue(new SetArm(() -> ArmSetpoints.NO_INTAKE.getDegrees())); // Pickup
-        operator.x().onTrue(new SetArm(() -> ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees()));
+        operator.b().onTrue(arm.moveCommand(ArmSetpoint.SAFE_IDLE)); // Idle arm within bumpers
+        operator.a().onTrue(arm.moveCommand(ArmSetpoint.STAGE_IDLE)); // Idle arm to go under stage
+
         // Climber
         operator.leftTrigger(0.10)
                 .and(operator.back())
-                .whileTrue(
-                        new ClimberRPM(
-                                () ->
-                                        MathUtil.applyDeadband(operator.getLeftTriggerAxis(), 0.35)
-                                                * 0.5));
+                .whileTrue(climber.climberCommand(() -> operator.getLeftTriggerAxis()));
 
-        // Eject the note from the front with start
-        operator.start()
-                .whileTrue(Commands.run(() -> intake.setVoltage(-12), intake))
-                .onFalse(Commands.runOnce(() -> intake.stopMotors()));
+        // Eject the note through the intake
+        operator.start().whileTrue(intake.ejectNoteCommand().alongWith(shooter.ejectNoteCommand()));
 
-        // operator.leftTrigger(0.3).whileTrue(
+        // Intake a note when held
         operator.leftBumper()
-                .whileTrue(CombinedCommands.armIntake())
-                .onFalse(new SetArm(() -> ArmSetpoints.NO_INTAKE.getDegrees()))
-                .onFalse(
-                        new MakeIntakeMotorSpin(9.0, 0)
-                                .withTimeout(1)
-                                .until(() -> intake.shooterSideSwitch()));
+                .onTrue(arm.moveCommand(ArmSetpoint.INTAKE)) // Lower arm when pressed
+                .onFalse(arm.moveCommand(ArmSetpoint.STAGE_IDLE)) // Raise arm when released
+                .whileTrue(intake.intakeNoteCommand()) // Intake the note when held
+                .onFalse(intake.intakeNoteCommand().withTimeout(0.5)); // Extra 0.5 seconds intaking
 
-        // NOTE: right Trigger has been assigned to climber
-        operator.rightTrigger(0.3).whileTrue(CombinedCommands.simpleShootNoteAmp());
+        // Score in the amp
+        operator.rightTrigger(0.3)
+                .onTrue(
+                        new TeleopShot(
+                                () -> operator.rightTrigger(0.3).getAsBoolean(),
+                                ArmSetpoint.AMP,
+                                ShooterSetpoint.AMP));
 
+        // Score in the speaker from the subwoofer
         operator.rightBumper()
                 .onTrue(
-                        new SubwooferShot(
-                                operator.rightBumper(),
-                                ArmSetpoints.SPEAKER_KICKBOT_SHOT.getDegrees(),
-                                2820,
-                                2700));
-
-        /**
-         * Testing button bindings
-         */
-        // SwerveModuleState[] moduleStatesForwards = {
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(0)),
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(0)),
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(0)),
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(0)),
-        // };
-        // testJoystick.a().whileTrue(Commands.run(
-        //   () -> SwerveSubsystem.getInstance().setModuleStates(moduleStatesForwards, true, true)
-        // ));
-
-        // SwerveModuleState[] moduleStatesSideways = {
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(90)),
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(90)),
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(90)),
-        //   new SwerveModuleState(0, Rotation2d.fromDegrees(90)),
-        // };
-        // testJoystick.a().whileTrue(Commands.run(
-        //   () -> SwerveSubsystem.getInstance().setModuleStates(moduleStatesSideways, true, true)
-        // ));
-        // Let testJoystick control swerve. Note disables driver joystick swerve. Never commit this
-        // line.
-        // s_Swerve.setDefaultCommand(new TeleopSwerve(testJoystick));
-        // testJoystick.back().onTrue(SwerveSubsystem.getInstance().setHeadingCommand(new
-        // Rotation2d()));
-        // testJoystick.b().onTrue(SwerveSubsystem.getInstance().setOdometryCommand(new
-        // Pose2d(3,3,new Rotation2d(0))));
-        // testJoystick.a().whileTrue(PhotonSubsystem.getInstance().getAprilTagCommand(PhotonPositions.FAR_SPEAKER_RED, driver))
-        //           .onFalse(Commands.runOnce(()->{},SwerveSubsystem.getInstance()));
-
-        // testJoystick.x() //Drives the note into the shooter
-        //   .whileTrue(Commands.runOnce(()-> intake.setMode(shooter.isReadyToShoot() ?
-        // IntakeModes.SHOOT : IntakeModes.STOP_INTAKE)))
-        //   .whileFalse(Commands.runOnce(()->intake.setMode(IntakeModes.STOP_INTAKE)));
-
-        // testJoystick.leftBumper().whileTrue(
-        //       new MakeIntakeMotorSpin(9.0,0));
-
-        // testJoystick.start().onTrue( new SetArm(armAngleDeg));
-        // testJoystick.back().whileTrue(new Shooter_PID_Tuner(shooterTargetRPM));
-        // testJoystick.rightBumper().whileTrue(CombinedCommands.simpleShootNoteSpeaker(1, () ->
-        // shooterTargetRPM.getAsDouble(), 50));
-
-        // testJoystick.rightTrigger().whileTrue(new
-        // Shooter_PID_Tuner(()->shooterTargetRPM.getAsDouble()));
-
-        // testJoystick.a().onTrue(PhotonSubsystem.getInstance().getResetCommand(4));
-        // testJoystick.b().onTrue(SwerveSubsystem.getInstance().setOdometryCommand(new Pose2d(3, 3,
-        // Rotation2d.fromDegrees(0))));
+                        new TeleopShot(
+                                () -> operator.rightBumper().getAsBoolean(),
+                                ArmSetpoint.SUBWOOFER_SHOT,
+                                ShooterSetpoint.SUBWOOFER));
     }
 
     /**
@@ -240,7 +199,7 @@ public class ApolloContainer extends RobotContainer {
      */
     public Command getAutonomousCommand() {
         int autoId = m_autoSelector.getAutoId();
-        System.out.println("*********************** Auto Id" + autoId);
+        DriverStation.reportWarning("~~~~Auto ID: " + autoId, false);
 
         return m_autoRoutines.getAutonomousCommand(autoId);
     }

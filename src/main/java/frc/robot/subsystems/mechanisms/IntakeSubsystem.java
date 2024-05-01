@@ -40,7 +40,6 @@ public class IntakeSubsystem extends SubsystemBase {
     private boolean isCenterSwitchActive, isShooterSideSwitchActive, isShooterSideLongSwitchActive;
     private final TunableDouble tunableReverseVolts, tunableFireVolts, tunableIntakeVolts;
     private final TunableDouble tunableEjectVolts;
-            
 
     /**
      * The IntakeSubsystem class represents the intake mechanism of the robot.
@@ -169,7 +168,7 @@ public class IntakeSubsystem extends SubsystemBase {
     /**
      * Fires a note by setting the voltage of the intake subsystem to the value specified by tunableFireVolts.
      */
-    public void fireNote() {
+    public void feedNote() {
         setVoltage(tunableFireVolts.get());
     }
 
@@ -188,12 +187,32 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
+     * Returns a Command object that represents the command to eject a note.
+     *
+     * @return the Command object for ejecting a note
+     */
+    public Command ejectNoteCommand() {
+        return run(() -> ejectNote()).finallyDo(() -> stopMotors());
+    }
+
+    /**
      * Returns a Command object that stops the intake mechanism.
      *
      * @return the Command object that stops the intake mechanism
      */
     public Command stopCommand() {
         return runOnce(() -> stopMotors());
+    }
+
+    /**
+     * Returns a Command to intake a note and stop intaking once the shooter side switch is active.
+     *
+     * @return The Command object representing the intakeNoteCommand.
+     */
+    public Command intakeNoteCommand() {
+        return run(() -> intakeNote())
+                .until(() -> shooterSideSwitch())
+                .finallyDo(() -> stopMotors());
     }
 
     /**
@@ -206,19 +225,19 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * Returns a Command object that fires a note.
+     * Returns a Command object that feeds the note into the shooter.
      *
      * The Command will spin up the intake until the shooterSideSwitch becomes active and not active again.
      * The intake is spindown once completed.
      *
      * @return the Command object that fires a note
      */
-    public Command fireNoteCommand() {
+    public Command feedNoteCommand() {
         return Commands.deadline(
                         Commands.sequence(
                                 new WaitUntilCommand(() -> shooterSideSwitch()).withTimeout(0.2),
                                 new WaitUntilCommand(() -> !shooterSideSwitchLong())),
-                        run(() -> fireNote()))
+                        run(() -> feedNote()))
                 .andThen(stopCommand());
     }
 }

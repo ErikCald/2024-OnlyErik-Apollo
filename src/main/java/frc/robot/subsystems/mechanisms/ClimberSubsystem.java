@@ -10,6 +10,7 @@ import com.revrobotics.CANSparkLowLevel.MotorType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -159,6 +160,7 @@ public class ClimberSubsystem extends SubsystemBase {
      * @return a Command object that controls the climber mechanism
      */
     public Command climberCommand(DoubleSupplier getPercentOutput) {
-        return run(() -> setVoltage(getPercentOutput.getAsDouble())).finallyDo(() -> stopMotors());
+        return run(() -> setVoltage(MathUtil.applyDeadband(getPercentOutput.getAsDouble(), 0.35)))
+                .finallyDo(() -> stopMotors());
     }
 }
