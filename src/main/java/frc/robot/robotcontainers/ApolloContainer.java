@@ -14,11 +14,7 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
-import frc.lib.lib2706.button.FakeCommandXboxController;
-import frc.lib.lib2706.button.FakeCommandXboxController.FakeControllerType;
-import frc.lib.lib2706.networktables.TunableDouble;
 import frc.robot.Config.ArmConfig.ArmSetpoint;
-import frc.robot.Config.NTConfig;
 import frc.robot.Config.ShooterConfig.ShooterSetpoint;
 import frc.robot.Config.SwerveConfig.TeleopSpeeds;
 import frc.robot.Robot;
@@ -31,7 +27,6 @@ import frc.robot.commands.TeleopSwerve;
 import frc.robot.commands.auto.AutoRoutines;
 import frc.robot.commands.auto.AutoSelector;
 import frc.robot.subsystems.mechanisms.ArmSubsystem;
-import frc.robot.subsystems.mechanisms.ClimberSubsystem;
 import frc.robot.subsystems.mechanisms.IntakeSubsystem;
 import frc.robot.subsystems.mechanisms.ShooterSubsystem;
 import frc.robot.subsystems.misc.CreateShuffleboardLayout;
@@ -49,23 +44,23 @@ import frc.robot.subsystems.vision.ApriltagSubsystem;
  */
 public class ApolloContainer extends RobotContainer {
     /* Controllers */
-        private final CommandXboxController driver = new CommandXboxController(0);
+    private final CommandXboxController driver = new CommandXboxController(0);
     private final CommandXboxController operator = new CommandXboxController(1);
     private final CommandXboxController testJoystick = new CommandXboxController(2);
 
-//     private final CommandXboxController driver =
-//             new FakeCommandXboxController(0, FakeControllerType.EliminatorAfterShock);
-//     private final CommandXboxController operator =
-//             new FakeCommandXboxController(1, FakeControllerType.EliminatorAfterShock);
-//     private final CommandXboxController testJoystick =
-//             new FakeCommandXboxController(2, FakeControllerType.EliminatorAfterShock);
+    //     private final CommandXboxController driver =
+    //             new FakeCommandXboxController(0, FakeControllerType.EliminatorAfterShock);
+    //     private final CommandXboxController operator =
+    //             new FakeCommandXboxController(1, FakeControllerType.EliminatorAfterShock);
+    //     private final CommandXboxController testJoystick =
+    //             new FakeCommandXboxController(2, FakeControllerType.EliminatorAfterShock);
 
     /* Create Subsystems in a specific order */
     private final SwerveSubsystem swerve = SwerveSubsystem.getInstance();
     private final IntakeSubsystem intake = IntakeSubsystem.getInstance();
     private final ShooterSubsystem shooter = ShooterSubsystem.getInstance();
     private final ArmSubsystem arm = ArmSubsystem.getInstance();
-//     private final ClimberSubsystem climber = ClimberSubsystem.getInstance();
+    //     private final ClimberSubsystem climber = ClimberSubsystem.getInstance();
 
     /* Auto */
     private AutoRoutines m_autoRoutines;
@@ -119,7 +114,16 @@ public class ApolloContainer extends RobotContainer {
          * Driver Controls
          */
         // Core Swerve Buttons
-        driver.back().onTrue(SwerveSubsystem.getInstance().setHeadingCommand(new Rotation2d(0)).andThen(Commands.runOnce(() -> System.out.println("REset odometry: " + swerve.getPose()))));
+        driver.back()
+                .onTrue(
+                        SwerveSubsystem.getInstance()
+                                .setHeadingCommand(new Rotation2d(0))
+                                .andThen(
+                                        Commands.runOnce(
+                                                () ->
+                                                        System.out.println(
+                                                                "REset odometry: "
+                                                                        + swerve.getPose()))));
         driver.leftBumper()
                 .onTrue(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.SLOW)))
                 .onFalse(Commands.runOnce(() -> TeleopSwerve.setSpeeds(TeleopSpeeds.MAX)));
@@ -132,7 +136,7 @@ public class ApolloContainer extends RobotContainer {
 
         // Commands that take control of the rotation stick
         driver.y().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(0)));
-                driver.x().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(90)));
+        driver.x().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(90)));
         driver.a().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(180)));
         driver.b().whileTrue(new RotateToAngle(driver, Rotation2d.fromDegrees(270)));
 
@@ -146,8 +150,9 @@ public class ApolloContainer extends RobotContainer {
          */
         // Cancel any active shooter and intake commands
         operator.back()
-                .onTrue(Commands.idle(shooter, intake).withTimeout(0.1))
-                .onTrue(arm.holdArmCommand());
+                .onTrue(
+                        Commands.idle(shooter, intake)
+                                .withTimeout(0.1)); // .onTrue(arm.holdArmCommand());
 
         // Arm
         operator.b().onTrue(arm.moveCommand(ArmSetpoint.SAFE_IDLE)); // Idle arm within bumpers

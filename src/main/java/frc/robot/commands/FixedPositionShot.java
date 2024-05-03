@@ -64,6 +64,8 @@ public class FixedPositionShot extends SequentialCommandGroup {
      * @return true to shoot, false to not shoot
      */
     public boolean shouldShoot() {
-        return shooter.isAtSetpoint(m_setpoint.shooter) && arm.isAtSetpoint(m_setpoint.arm) && swerve.isAtPose(true);
+        return shooter.isAtSetpoint(m_setpoint.shooter)
+                && arm.isAtSetpoint(m_setpoint.arm)
+                && swerve.isAtPose(true);
     }
 }

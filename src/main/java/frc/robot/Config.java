@@ -191,7 +191,7 @@ public final class Config {
     }
 
     public static final class GeneralConfig {
-        public static final boolean enableTunableData = false;
+        public static final boolean enableTunableData = true;
 
         public static final double joystickDeadband = 0.1;
         public static final boolean convertXYToPolar = true;
@@ -333,6 +333,8 @@ public final class Config {
         public static final double velTolerance = 0.3;
         public static final double angleVelTolerance = Math.toRadians(5.0);
 
+        public static final boolean enableSwerveSetpointGenerator = true;
+
         public static enum ModuleLimits {
             // NEO V1.0/V1.1 L1 Modules has a Drivetrain Free Speed of 12.5 ft/s or 3.81 m/s
             AUTO(new SwerveModuleLimits(3.5, 3.5 * 3, Math.toRadians(1080))),
@@ -458,7 +460,7 @@ public final class Config {
 
     public class ArmConfig {
         public static final boolean invertMotor = true;
-        public static final boolean invertEncoder = true;
+        public static final boolean invertEncoder = false;
         public static final int currentLimit = 20;
 
         public static final double shiftEncoderRange = 10;
@@ -557,7 +559,7 @@ public final class Config {
 
         public static final PIDConfig pid0Config = new PIDConfig(0.0003, 0.0002, 0.0, 0.0, 0.0, 0);
         public static final PIDConfig pid1Config =
-                new PIDConfig(0.00027, 0.00027, 0.0, 0.00015, 0.0, 1);
+                new PIDConfig(0.0004, 0.00027, 0.0, 0.00015, 0.0, 1);
         public static final PIDConfig pid3SlowdownConfig =
                 new PIDConfig(0.0, 0.0003, 0.0, 0.0, 0.0, 3);
 

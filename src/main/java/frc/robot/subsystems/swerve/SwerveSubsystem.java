@@ -272,7 +272,8 @@ public class SwerveSubsystem extends SubsystemBase {
                     getRobotRelativeSpeeds().omegaRadiansPerSecond
                             < SwerveConfig.headingCorrectionRotatingDeadband;
             if (dontWantToRotate && wantToMove && notRotating) {
-                if (getRobotRelativeSpeeds().omegaRadiansPerSecond < SwerveConfig.headingCorrectionDeadband) {
+                if (getRobotRelativeSpeeds().omegaRadiansPerSecond
+                        < SwerveConfig.headingCorrectionDeadband) {
                     speeds.omegaRadiansPerSecond = 0;
                 } else {
                     speeds.omegaRadiansPerSecond =
@@ -285,14 +286,19 @@ public class SwerveSubsystem extends SubsystemBase {
             }
         }
 
-        m_currentSetpoint =
-                m_setpointGenerator.generateSetpoint(
-                        m_moduleLimits.setpoint,
-                        m_currentSetpoint,
-                        speeds,
-                        GeneralConfig.loopPeriodSecs);
-
-        m_currentSetpoint = new SwerveSetpoint(speeds, SwerveConfig.swerveKinematics.toSwerveModuleStates(speeds));
+        // Use the SwerveSetpointGenerator to limit module states to only what is physically achievable
+        if (SwerveConfig.enableSwerveSetpointGenerator) {
+            m_currentSetpoint =
+                    m_setpointGenerator.generateSetpoint(
+                            m_moduleLimits.setpoint,
+                            m_currentSetpoint,
+                            speeds,
+                            GeneralConfig.loopPeriodSecs);
+        } else {
+            m_currentSetpoint =
+                    new SwerveSetpoint(
+                            speeds, SwerveConfig.swerveKinematics.toSwerveModuleStates(speeds));
+        }
 
         pubVelCmdX.accept(m_currentSetpoint.chassisSpeeds.vxMetersPerSecond);
         pubVelCmdY.accept(m_currentSetpoint.chassisSpeeds.vyMetersPerSecond);
@@ -621,9 +627,9 @@ public class SwerveSubsystem extends SubsystemBase {
         SwerveModuleAbstract.updateTunableModuleConstants();
         TunableDouble.ifChanged(
                 hashCode(), () -> m_holdHeadingPid.setP(tunableHeadingkP.get()), tunableHeadingkP);
-        // tunableXPid.checkForUpdates();
-        // tunableYPid.checkForUpdates();
-        // tunableRotPid.checkForUpdates();
+        tunableXPid.checkForUpdates();
+        tunableYPid.checkForUpdates();
+        tunableRotPid.checkForUpdates();
 
         // Update NetworkTables
         pubPoseRot.accept(getPose().getRotation().getDegrees());

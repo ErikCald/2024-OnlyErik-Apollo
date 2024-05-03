@@ -1,8 +1,10 @@
 package frc.lib.lib2706.networktables;
 
+import edu.wpi.first.networktables.IntegerEntry;
 import edu.wpi.first.networktables.NetworkTable;
 
 import frc.lib.lib2706.controllers.PIDConfig;
+import frc.robot.Config.NTConfig;
 
 import java.util.function.Consumer;
 
@@ -10,6 +12,7 @@ import java.util.function.Consumer;
  * A class representing a tunable PID configuration.
  */
 public class TunablePIDConfig {
+    private static final IntegerEntry s_updatedEntry = NTConfig.characterizingTable.getIntegerTopic("TunablePIDConfigUpdated").getEntry(0);
     private final TunableDouble m_kF, m_kP, m_kI, m_kD, m_kIZone;
     private final Consumer<PIDConfig> m_setConfig;
     private final int m_pidSlot;
@@ -46,9 +49,7 @@ public class TunablePIDConfig {
         m_kIZone = new TunableDouble("iZone", ffTable, kIZone);
 
         // Set the initial values to the defaults or to previously set values on networktables
-        updateValues();
-
-        System.out.println("HashCode: " + hashCode());
+        checkForUpdates();
     }
 
     /**
@@ -74,9 +75,9 @@ public class TunablePIDConfig {
     /**
      * Updates the PID controller with the current values of the tunable parameters.
      */
-    static int i = 0;
     public void updateValues() {
-        System.out.println("UPDATED " + i++);
+        s_updatedEntry.accept(s_updatedEntry.get() + 1);
+
         m_setConfig.accept(
                 new PIDConfig(
                         m_kF.get(), m_kP.get(), m_kI.get(), m_kD.get(), m_kIZone.get(), m_pidSlot));
@@ -86,6 +87,7 @@ public class TunablePIDConfig {
      * Checks for updates in the tunable parameters and updates the feedforward values accordingly.
      */
     public void checkForUpdates() {
-        TunableDouble.ifChanged(hashCode(), () -> this.updateValues(), m_kP, m_kI, m_kD, m_kIZone);
+        TunableDouble.ifChanged(
+                hashCode(), () -> this.updateValues(), m_kF, m_kP, m_kI, m_kD, m_kIZone);
     }
 }

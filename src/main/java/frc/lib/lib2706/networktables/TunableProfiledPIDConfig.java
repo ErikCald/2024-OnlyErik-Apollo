@@ -43,7 +43,7 @@ public class TunableProfiledPIDConfig {
         m_tunablePIDConfig = new TunablePIDConfig(this::pidConfigHasUpdates, pidTable, pidConfig);
 
         // Set the initial values to the defaults or to previously set values on networktables
-        updateValues();
+        checkForUpdates();
     }
 
     /**

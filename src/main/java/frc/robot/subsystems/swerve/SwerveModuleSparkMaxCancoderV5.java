@@ -21,15 +21,14 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+
 import frc.lib.lib2706.controllers.PIDConfig;
-import frc.lib.lib2706.networktables.TunableDouble;
 import frc.lib.lib2706.swerve.SwerveModuleConstants;
 import frc.lib.lib3512.util.CANSparkMaxUtil;
 import frc.lib.lib3512.util.CANSparkMaxUtil.Usage;
 import frc.robot.Config.CANID;
 import frc.robot.Config.NTConfig;
 import frc.robot.Config.SwerveConfig;
-import frc.robot.Robot;
 import frc.robot.subsystems.misc.SparkMaxManagerSubsystem;
 
 /**
@@ -53,7 +52,8 @@ public class SwerveModuleSparkMaxCancoderV5 extends SwerveModuleAbstract {
      * @param moduleConstants The constants specific to this swerve module.
      * @param moduleName The name of the swerve module.
      */
-    public SwerveModuleSparkMaxCancoderV5(SwerveModuleConstants moduleConstants, String moduleName) {
+    public SwerveModuleSparkMaxCancoderV5(
+            SwerveModuleConstants moduleConstants, String moduleName) {
         super(moduleConstants, moduleName);
 
         /* Steer Encoder Config */
@@ -92,7 +92,8 @@ public class SwerveModuleSparkMaxCancoderV5 extends SwerveModuleAbstract {
         /* Swerve CANCoder Configuration */
         swerveCanCoderConfig.absoluteSensorRange = AbsoluteSensorRange.Unsigned_0_to_360;
         swerveCanCoderConfig.sensorDirection = SwerveConfig.cancoderInvert;
-        swerveCanCoderConfig.initializationStrategy = SensorInitializationStrategy.BootToAbsolutePosition;
+        swerveCanCoderConfig.initializationStrategy =
+                SensorInitializationStrategy.BootToAbsolutePosition;
         swerveCanCoderConfig.sensorTimeBase = SensorTimeBase.PerSecond;
 
         m_steerCancoder.configFactoryDefault();
@@ -215,7 +216,8 @@ public class SwerveModuleSparkMaxCancoderV5 extends SwerveModuleAbstract {
      * Sets the NEO encoder position based on the CANCoder's radians value.
      */
     private void setNEOEncoderFromCancoder() {
-        // double absolutePosition = getCanCoder().getRadians() - Math.toRadians(tunableSteerOffset.get());
+        // double absolutePosition = getCanCoder().getRadians() -
+        // Math.toRadians(tunableSteerOffset.get());
 
         m_integratedSteerEncoder.setPosition(getCanCoder().getRadians());
     }
@@ -390,7 +392,6 @@ public class SwerveModuleSparkMaxCancoderV5 extends SwerveModuleAbstract {
         pubMeasuredSpeed.accept(getDriveVelocity());
         pubMeasuredAngle.accept(getAngle().getDegrees());
         pubCancoderAngle.accept(getCanCoder().getDegrees());
-
     }
 
     /**

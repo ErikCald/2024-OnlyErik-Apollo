@@ -174,9 +174,9 @@ public class ShooterSubsystem extends SubsystemBase {
         pubTopVel.accept(getTopVelRPM());
 
         /* Update tunables */
-        // tunablePID0.updateValues();
-        // tunablePID1.updateValues();
-        // tunablePID3Slowdown.updateValues();
+        // tunablePID0.checkForUpdates();
+        tunablePID1.checkForUpdates();
+        // tunablePID3Slowdown.checkForUpdates();
     }
 
     /**

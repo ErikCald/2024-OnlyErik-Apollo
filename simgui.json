@@ -15,6 +15,12 @@
         "Data": {
           "open": true
         },
+        "PID2": {
+          "TunePID": {
+            "open": true
+          },
+          "open": true
+        },
         "TransportPID0": {
           "TuneProfiledPID": {
             "TunePID": {
@@ -26,6 +32,9 @@
         "Tunables": {
           "open": true
         },
+        "open": true
+      },
+      "Characterizing": {
         "open": true
       },
       "SelectAuto": {

@@ -243,10 +243,10 @@ public class ArmSubsystem extends SubsystemBase {
         // Update tunable pid values
         TunableDouble.ifChanged(
                 hashCode(), () -> setEncoderOffset(tunableAbsOffset.get()), tunableAbsOffset);
-        // tunableTransportPID0.updateValues();
-        // tunablePID1.updateValues();
-        // tunablePID2.updateValues();
-        // tunablePID3.updateValues();
+        tunableTransportPID0.checkForUpdates();
+        tunablePID1.checkForUpdates();
+        tunablePID2.checkForUpdates();
+        tunablePID3.checkForUpdates();
     }
 
     /**
