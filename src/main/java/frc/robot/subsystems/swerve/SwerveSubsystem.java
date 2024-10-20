@@ -516,7 +516,7 @@ public class SwerveSubsystem extends SubsystemBase {
      */
     public void driveToPose(Pose2d pose, boolean flipForAlliance) {
         if (flipForAlliance) {
-            AllianceFlipUtil.apply(pose);
+            pose = AllianceFlipUtil.apply(pose);
         }
 
         double xSpeed = 0;
